@@ -11,6 +11,8 @@ final class MockHealthRepository: HealthDataRepository {
 
     // MARK: - HealthDataRepository
 
+    func requestAuthorization() async throws { }
+
     func weightSeries(range: TimeRange) async -> [WeightSample] {
         switch range {
         case .week:  return Self.weeklyWeights

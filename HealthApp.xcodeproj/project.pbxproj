@@ -37,6 +37,8 @@
 		BF0000000000000000000056 /* SleepChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000055 /* SleepChart.swift */; };
 		BF0000000000000000000058 /* ExerciseChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000057 /* ExerciseChart.swift */; };
 		BF000000000000000000005A /* GoalEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000059 /* GoalEditSheet.swift */; };
+		BF000000000000000000005C /* HealthKitRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE000000000000000000005B /* HealthKitRepository.swift */; };
+		BF000000000000000000005E /* ImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE000000000000000000005D /* ImportView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +72,9 @@
 		FE0000000000000000000055 /* SleepChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SleepChart.swift"; sourceTree = "<group>"; };
 		FE0000000000000000000057 /* ExerciseChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExerciseChart.swift"; sourceTree = "<group>"; };
 		FE0000000000000000000059 /* GoalEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GoalEditSheet.swift"; sourceTree = "<group>"; };
+		FE000000000000000000005B /* HealthKitRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthKitRepository.swift"; sourceTree = "<group>"; };
+		FE000000000000000000005D /* ImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ImportView.swift"; sourceTree = "<group>"; };
+		FE000000000000000000005F /* HealthApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "HealthApp.entitlements"; sourceTree = "<group>"; };
 		PA0000000000000000000040 /* HealthApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "HealthApp.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -109,6 +114,7 @@
 				6A0000000000000000000036 /* Features */,
 				6A000000000000000000003E /* Models */,
 				6A000000000000000000003F /* Repository */,
+				FE000000000000000000005F /* HealthApp.entitlements */,
 			);
 			path = "HealthApp";
 			sourceTree = "<group>";
@@ -149,6 +155,7 @@
 				6A0000000000000000000037 /* Events */,
 				6A0000000000000000000038 /* Exercise */,
 				6A0000000000000000000039 /* Home */,
+				6A0000000000000000000060 /* Import */,
 				6A000000000000000000003B /* Profile */,
 				6A000000000000000000003C /* Sleep */,
 				6A000000000000000000003D /* Weight */,
@@ -181,6 +188,14 @@
 				FE0000000000000000000017 /* HomeViewModel.swift */,
 			);
 			path = "Home";
+			sourceTree = "<group>";
+		};
+		6A0000000000000000000060 /* Import */ = {
+			isa = PBXGroup;
+			children = (
+				FE000000000000000000005D /* ImportView.swift */,
+			);
+			path = "Import";
 			sourceTree = "<group>";
 		};
 		6A000000000000000000003A /* Components */ = {
@@ -236,6 +251,7 @@
 			isa = PBXGroup;
 			children = (
 				FE000000000000000000002F /* HealthDataRepository.swift */,
+				FE000000000000000000005B /* HealthKitRepository.swift */,
 				FE0000000000000000000031 /* MockHealthRepository.swift */,
 			);
 			path = "Repository";
@@ -273,6 +289,11 @@
 				TargetAttributes = {
 					0D0000000000000000000044 = {
 						CreatedOnToolsVersion = 15.0;
+						SystemCapabilities = {
+							com.apple.HealthKit = {
+								enabled = 1;
+							};
+						};
 					};
 				};
 			};
@@ -340,6 +361,8 @@
 				BF0000000000000000000056 /* SleepChart.swift in Sources */,
 				BF0000000000000000000058 /* ExerciseChart.swift in Sources */,
 				BF000000000000000000005A /* GoalEditSheet.swift in Sources */,
+				BF000000000000000000005C /* HealthKitRepository.swift in Sources */,
+				BF000000000000000000005E /* ImportView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -461,10 +484,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = HealthApp/HealthApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "用于读取体重、睡眠、运动与心率数据，在本机生成健康趋势分析。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -484,10 +509,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = HealthApp/HealthApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "用于读取体重、睡眠、运动与心率数据，在本机生成健康趋势分析。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

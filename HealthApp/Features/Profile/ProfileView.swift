@@ -125,7 +125,7 @@ struct ProfileView: View {
     private var dataSettings: some View {
         settingsGroup(title: "数据与偏好") {
             settingRow(icon: "heart.text.square.fill", title: "数据来源", value: "Apple 健康 ✓", tint: .successGreen) {
-                placeholderToast("数据来源")
+                appState.presentHealthImport()
             }
             settingDivider
             settingRow(icon: "scalemass.fill", title: "单位", value: "公斤(kg) ›", tint: .brandBlue) {
