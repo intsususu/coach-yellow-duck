@@ -32,6 +32,8 @@
 		BF000000000000000000002E /* WeightSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE000000000000000000002D /* WeightSample.swift */; };
 		BF0000000000000000000030 /* HealthDataRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE000000000000000000002F /* HealthDataRepository.swift */; };
 		BF0000000000000000000032 /* MockHealthRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000031 /* MockHealthRepository.swift */; };
+		BF0000000000000000000052 /* WeightChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000051 /* WeightChart.swift */; };
+		BF0000000000000000000054 /* WeightViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000053 /* WeightViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +62,8 @@
 		FE000000000000000000002D /* WeightSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WeightSample.swift"; sourceTree = "<group>"; };
 		FE000000000000000000002F /* HealthDataRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "HealthDataRepository.swift"; sourceTree = "<group>"; };
 		FE0000000000000000000031 /* MockHealthRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MockHealthRepository.swift"; sourceTree = "<group>"; };
+		FE0000000000000000000051 /* WeightChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WeightChart.swift"; sourceTree = "<group>"; };
+		FE0000000000000000000053 /* WeightViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WeightViewModel.swift"; sourceTree = "<group>"; };
 		PA0000000000000000000040 /* HealthApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "HealthApp.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -94,6 +98,7 @@
 			isa = PBXGroup;
 			children = (
 				6A0000000000000000000034 /* App */,
+				6A0000000000000000000050 /* Charts */,
 				6A0000000000000000000035 /* DesignSystem */,
 				6A0000000000000000000036 /* Features */,
 				6A000000000000000000003E /* Models */,
@@ -110,6 +115,14 @@
 				FE0000000000000000000005 /* MainTabView.swift */,
 			);
 			path = "App";
+			sourceTree = "<group>";
+		};
+		6A0000000000000000000050 /* Charts */ = {
+			isa = PBXGroup;
+			children = (
+				FE0000000000000000000051 /* WeightChart.swift */,
+			);
+			path = "Charts";
 			sourceTree = "<group>";
 		};
 		6A0000000000000000000035 /* DesignSystem */ = {
@@ -191,6 +204,7 @@
 			isa = PBXGroup;
 			children = (
 				FE000000000000000000001F /* WeightView.swift */,
+				FE0000000000000000000053 /* WeightViewModel.swift */,
 			);
 			path = "Weight";
 			sourceTree = "<group>";
@@ -312,6 +326,8 @@
 				BF000000000000000000002E /* WeightSample.swift in Sources */,
 				BF0000000000000000000030 /* HealthDataRepository.swift in Sources */,
 				BF0000000000000000000032 /* MockHealthRepository.swift in Sources */,
+				BF0000000000000000000052 /* WeightChart.swift in Sources */,
+				BF0000000000000000000054 /* WeightViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
