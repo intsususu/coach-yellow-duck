@@ -6,9 +6,12 @@ import Foundation
 protocol HealthDataRepository: AnyObject {
     /// 请求数据源所需授权。Mock 为空操作，HealthKit 只申请读取权限。
     func requestAuthorization() async throws
+    /// 首页三圆环当日指标：当日睡眠时长 + 健身环锻炼分钟/活动热量及其目标。
+    func homeRingMetrics() async -> HomeRingMetrics
     func weightSeries(range: TimeRange) async -> [WeightSample]
     func sleepSeries(range: TimeRange) async -> [SleepSample]
     func exerciseSeries(range: TimeRange) async -> [ExerciseSample]
     func events() async -> [HealthEvent]
     func saveEvent(_ event: HealthEvent) async
+    func deleteEvent(_ event: HealthEvent) async
 }

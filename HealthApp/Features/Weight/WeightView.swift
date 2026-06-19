@@ -24,21 +24,7 @@ struct WeightView: View {
                 .padding(.vertical, 12)
             }
             .background(Color.appBg.ignoresSafeArea())
-            .navigationTitle("体重")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { appState.presentEventEditor() } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 15, weight: .bold))
-                            .frame(width: 34, height: 34)
-                            .foregroundColor(.white)
-                            .background(Color.brandBlue)
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("记录事件")
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
             .task { await viewModel.loadInitialData(from: appState.repository) }
             .task(id: selectedRange) {
                 await viewModel.loadSeries(for: selectedRange, from: appState.repository)

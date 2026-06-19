@@ -40,7 +40,7 @@ struct RingMetric: View {
                     .trim(from: 0, to: max(0, min(1, progress)))
                     .stroke(color, style: StrokeStyle(lineWidth: 7, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                VStack(spacing: 0) {
+                HStack(alignment: .firstTextBaseline, spacing: 1) {
                     Text(value)
                         .font(.system(size: 18, weight: .heavy))
                         .foregroundColor(.textPrimary)
@@ -50,6 +50,9 @@ struct RingMetric: View {
                             .foregroundColor(.textSecondary)
                     }
                 }
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+                .frame(width: 50)
             }
             .frame(width: 64, height: 64)
 

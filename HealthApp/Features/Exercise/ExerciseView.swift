@@ -45,21 +45,7 @@ struct ExerciseView: View {
                 .padding(.vertical, 12)
             }
             .background(Color.appBg.ignoresSafeArea())
-            .navigationTitle("运动")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { appState.presentEventEditor() } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 15, weight: .bold))
-                            .frame(width: 34, height: 34)
-                            .foregroundColor(.white)
-                            .background(Color.exerciseOrange)
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("记录事件")
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
             .task { await loadSamples() }
         }
     }

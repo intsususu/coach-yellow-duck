@@ -6,6 +6,7 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var vm = HomeViewModel()
+    @State private var showsEventTimeline = false
 
     var body: some View {
         ScrollView {
@@ -20,6 +21,9 @@ struct HomeView: View {
             .padding(.vertical, 12)
         }
         .background(Color.appBg.ignoresSafeArea())
+        .sheet(isPresented: $showsEventTimeline) {
+            EventTimelineView()
+        }
         .task { await vm.load(from: appState.repository) }
     }
 
@@ -66,7 +70,7 @@ struct HomeView: View {
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 4) {
-                            Text("本周 \(Self.deltaString(vm.stats?.weeklyDelta))")
+                            Text("最近30次 \(Self.deltaString(vm.stats?.recentDelta))")
                             Text("累计 \(Self.signedString(vm.stats?.cumulativeChange))")
                         }
                         .font(.system(size: 13, weight: .semibold))
@@ -99,16 +103,26 @@ struct HomeView: View {
     // MARK: - 3 圆环指标卡
 
     private var ringsCard: some View {
-        CardView {
+        let m = vm.ringMetrics
+        return CardView {
             HStack(spacing: 0) {
-                RingMetric(value: String(format: "%.1f", vm.sleepHours), unit: "h",
-                           label: "睡眠", progress: vm.sleepHours / 8.0, color: .sleepIndigo)
-                RingMetric(value: "\(vm.exerciseMinutes)", unit: "m",
-                           label: "运动", progress: Double(vm.exerciseMinutes) / 90.0, color: .successGreen)
-                RingMetric(value: "\(vm.exerciseKcal)", unit: "千卡",
-                           label: "卡路里", progress: Double(vm.exerciseKcal) / 600.0, color: .exerciseOrange)
+                RingMetric(value: String(format: "%.1f", m.sleepHours), unit: "h",
+                           label: "睡眠", progress: Self.ringProgress(m.sleepHours, m.sleepGoalHours),
+                           color: .sleepIndigo)
+                RingMetric(value: "\(m.exerciseMinutes)", unit: "m",
+                           label: "运动", progress: Self.ringProgress(Double(m.exerciseMinutes), Double(m.exerciseGoalMinutes)),
+                           color: .successGreen)
+                RingMetric(value: "\(m.activeKcal)", unit: "千卡",
+                           label: "卡路里", progress: Self.ringProgress(Double(m.activeKcal), Double(m.activeKcalGoal)),
+                           color: .exerciseOrange)
             }
         }
+    }
+
+    /// 环进度：值/目标，夹在 [0, 1]（达标即满环，避免目标为 0 时除零）。
+    private static func ringProgress(_ value: Double, _ goal: Double) -> Double {
+        guard goal > 0 else { return 0 }
+        return min(1, max(0, value / goal))
     }
 
     // MARK: - 关联洞察卡（虚线框）
@@ -163,6 +177,9 @@ struct HomeView: View {
                 }
             }
         }
+        // 点击卡片（「记录」按钮区域除外）进入事件列表页。
+        .contentShape(Rectangle())
+        .onTapGesture { showsEventTimeline = true }
     }
 
     // MARK: - 格式化

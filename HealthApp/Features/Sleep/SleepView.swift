@@ -23,21 +23,7 @@ struct SleepView: View {
                 .padding(.vertical, 12)
             }
             .background(Color.appBg.ignoresSafeArea())
-            .navigationTitle("睡眠")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { appState.presentEventEditor() } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 15, weight: .bold))
-                            .frame(width: 34, height: 34)
-                            .foregroundColor(.white)
-                            .background(Color.sleepIndigo)
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("记录事件")
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
             .task(id: selectedRange) { await loadSamples() }
         }
     }

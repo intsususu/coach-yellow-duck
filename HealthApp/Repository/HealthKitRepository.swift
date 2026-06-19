@@ -24,6 +24,18 @@ final class HealthKitRepository: HealthDataRepository {
         try await healthStore.requestAuthorization(toShare: [], read: readTypes)
     }
 
+    func homeRingMetrics() async -> HomeRingMetrics {
+        async let sleep = todaySleepHours()
+        async let rings = todayActivityRings()
+        let (sleepHours, activity) = await (sleep, rings)
+        return HomeRingMetrics(sleepHours: sleepHours,
+                               sleepGoalHours: 8,
+                               exerciseMinutes: activity.exerciseMinutes,
+                               exerciseGoalMinutes: activity.exerciseGoalMinutes,
+                               activeKcal: activity.activeKcal,
+                               activeKcalGoal: activity.activeKcalGoal)
+    }
+
     func weightSeries(range: TimeRange) async -> [WeightSample] {
         guard let bodyMass = HKObjectType.quantityType(forIdentifier: .bodyMass) else { return [] }
         let end = Date()
@@ -111,6 +123,10 @@ final class HealthKitRepository: HealthDataRepository {
     func saveEvent(_ event: HealthEvent) async {
         await eventRepository.saveEvent(event)
     }
+
+    func deleteEvent(_ event: HealthEvent) async {
+        await eventRepository.deleteEvent(event)
+    }
 }
 
 private extension HealthKitRepository {
@@ -133,6 +149,17 @@ private extension HealthKitRepository {
         var unspecified = 0
     }
 
+    struct ActivityRingValues {
+        var exerciseMinutes: Int
+        var exerciseGoalMinutes: Int
+        var activeKcal: Int
+        var activeKcalGoal: Int
+
+        /// 无活动摘要（未戴表 / 未授权）时的兜底：值为 0，目标取 Apple 常见默认。
+        static let fallback = ActivityRingValues(exerciseMinutes: 0, exerciseGoalMinutes: 30,
+                                                 activeKcal: 0, activeKcalGoal: 500)
+    }
+
     var readTypes: Set<HKObjectType> {
         let identifiers: [HKQuantityTypeIdentifier] = [
             .bodyMass,
@@ -145,7 +172,52 @@ private extension HealthKitRepository {
             types.insert(sleep)
         }
         types.insert(HKObjectType.workoutType())
+        types.insert(HKObjectType.activitySummaryType())  // 读取活动环数值与目标
         return types
+    }
+
+    /// 当日睡眠时长（小时）：取最近一晚 sleepAnalysis 聚合的总时长。
+    func todaySleepHours() async -> Double {
+        guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return 0 }
+        let end = Date()
+        let start = calendar.date(byAdding: .day, value: -2, to: end) ?? end
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictEndDate)
+        do {
+            let nights = aggregateSleep(try await categorySamples(type: sleepType, predicate: predicate))
+            guard let latest = nights.last else { return 0 }
+            return (Double(latest.totalMinutes) / 60.0).rounded(toPlaces: 1)
+        } catch {
+            return 0
+        }
+    }
+
+    /// 当日活动环：锻炼分钟 / 活动热量及各自目标，取自 HKActivitySummary。
+    func todayActivityRings() async -> ActivityRingValues {
+        guard let summary = await todayActivitySummary() else { return .fallback }
+        let exercise = Int(summary.appleExerciseTime.doubleValue(for: .minute()).rounded())
+        let kcal = Int(summary.activeEnergyBurned.doubleValue(for: .kilocalorie()).rounded())
+        // 目标均为非可选 HKQuantity；未设置活动目标时读到 0，故用 > 0 兜底。
+        let exerciseGoal = Int(summary.appleExerciseTimeGoal.doubleValue(for: .minute()).rounded())
+        let kcalGoal = Int(summary.activeEnergyBurnedGoal.doubleValue(for: .kilocalorie()).rounded())
+        return ActivityRingValues(
+            exerciseMinutes: exercise,
+            exerciseGoalMinutes: exerciseGoal > 0 ? exerciseGoal : ActivityRingValues.fallback.exerciseGoalMinutes,
+            activeKcal: kcal,
+            activeKcalGoal: kcalGoal > 0 ? kcalGoal : ActivityRingValues.fallback.activeKcalGoal
+        )
+    }
+
+    /// 查询当日活动摘要（HKActivitySummary 携带锻炼/热量的值与目标）。
+    func todayActivitySummary() async -> HKActivitySummary? {
+        await withCheckedContinuation { continuation in
+            var components = calendar.dateComponents([.year, .month, .day], from: Date())
+            components.calendar = calendar
+            let predicate = HKQuery.predicate(forActivitySummariesBetweenStart: components, end: components)
+            let query = HKActivitySummaryQuery(predicate: predicate) { _, summaries, _ in
+                continuation.resume(returning: summaries?.last)
+            }
+            healthStore.execute(query)
+        }
     }
 
     var heartRateUnit: HKUnit {

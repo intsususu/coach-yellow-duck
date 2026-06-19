@@ -6,6 +6,7 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject private var appState: AppState
     @State private var showsGoalEditor = false
+    @State private var showsEventTimeline = false
     @State private var currentWeight: Double?
 
     var body: some View {
@@ -21,27 +22,16 @@ struct ProfileView: View {
                 .padding(.vertical, 12)
             }
             .background(Color.appBg.ignoresSafeArea())
-            .navigationTitle("我的")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { appState.presentEventEditor() } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 15, weight: .bold))
-                            .frame(width: 34, height: 34)
-                            .foregroundColor(.white)
-                            .background(Color.brandBlue)
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("记录事件")
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showsGoalEditor) {
                 GoalEditSheet(goalWeight: appState.goalWeight) { newGoal in
                     appState.goalWeight = newGoal
                     appState.showToast("目标体重已更新")
                 }
                 .presentationDetents([.medium])
+            }
+            .sheet(isPresented: $showsEventTimeline) {
+                EventTimelineView()
             }
             .task {
                 let samples = await appState.repository.weightSeries(range: .week)
@@ -141,7 +131,7 @@ struct ProfileView: View {
     private var appSettings: some View {
         settingsGroup(title: "更多") {
             settingRow(icon: "plus.circle.fill", title: "记录特殊事件", value: "生病/损伤/饮酒/旅行 ›", tint: .brandBlue) {
-                appState.presentEventEditor()
+                showsEventTimeline = true
             }
             settingDivider
             settingRow(icon: "square.and.arrow.up.fill", title: "导出数据", value: "›", tint: .eventTravel) {

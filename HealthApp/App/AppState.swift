@@ -24,6 +24,12 @@ final class AppState: ObservableObject {
     /// 首次启动或尚未完成授权流程时展示 A3。
     @Published var isImportPresented: Bool
 
+    /// 启动页门闩：首次数据加载完成前为 false，期间全屏展示 SplashView。
+    @Published private(set) var isInitialLoadComplete = false
+
+    /// 启动页最短展示时长，避免数据加载过快导致一闪而过。
+    private let minimumSplashDuration: TimeInterval = 1.4
+
     /// 目标体重，默认 73.0，可由「我的」编辑，驱动目标线与「距目标」。
     @Published var goalWeight: Double = 73.0
 
@@ -33,7 +39,7 @@ final class AppState: ObservableObject {
     /// 当前选中 Tab（供首页 Hero 卡跳转体重页等使用）。
     @Published var selectedTab: Tab = .home
 
-    /// ＋记事件占位 sheet 的呈现状态（真实表单留给 T08）。
+    /// 全局 ＋记事件弹窗（E2）的呈现状态（任意 Tab 右上＋ 唤起，新建）。
     @Published var isEventEditorPresented = false
 
     /// Toast 文案，非空即显示。
@@ -55,6 +61,18 @@ final class AppState: ObservableObject {
     /// 启动时从仓库加载事件到全局单一数据源。
     func loadInitialData() async {
         events = await repository.events()
+    }
+
+    /// 应用启动流程：加载首页数据，达到最短展示时长后撤下启动页。
+    func startUp() async {
+        guard !isInitialLoadComplete else { return }
+        let start = Date()
+        await loadInitialData()
+        let remaining = minimumSplashDuration - Date().timeIntervalSince(start)
+        if remaining > 0 {
+            try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
+        }
+        isInitialLoadComplete = true
     }
 
     /// A3 主按钮：只申请读取权限，成功后切换到 HealthKitRepository。
@@ -87,15 +105,36 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// 唤起记录事件入口。本阶段弹占位 sheet（T08 实现真实表单）。
+    /// 唤起全局记录事件弹窗（E2，新建）。任意 Tab 右上＋ 调用。
     func presentEventEditor() {
         isEventEditorPresented = true
     }
 
-    /// 保存事件：写入仓库 + 更新全局列表 + Toast。供 T08 复用。
+    /// 保存事件（新增或编辑）：写入仓库 + 更新全局单一数据源 + Toast。
+    /// 已存在的 id 原地更新；否则插入列表顶部，各页图表叠加随之刷新。
     func saveEvent(_ event: HealthEvent) async {
+        let isNew = !events.contains { $0.id == event.id }
         await repository.saveEvent(event)
-        events.insert(event, at: 0)
-        showToast("已记录：\(event.title)")
+        if let index = events.firstIndex(where: { $0.id == event.id }) {
+            events[index] = event
+        } else {
+            events.insert(event, at: 0)
+        }
+        showToast(isNew ? "已记录：\(event.title)" : "已更新：\(event.title)")
+    }
+
+    /// 删除事件：从仓库与全局数据源移除。不弹 Toast，由事件页内联「撤销删除」承接。
+    func deleteEvent(_ event: HealthEvent) async {
+        await repository.deleteEvent(event)
+        events.removeAll { $0.id == event.id }
+    }
+
+    /// 撤销删除：把最近删除的事件写回仓库与数据源（按日期排序自动归位）。
+    func restoreEvent(_ event: HealthEvent) async {
+        await repository.saveEvent(event)
+        if !events.contains(where: { $0.id == event.id }) {
+            events.insert(event, at: 0)
+        }
+        showToast("已恢复：\(event.title)")
     }
 }

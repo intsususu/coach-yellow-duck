@@ -5,16 +5,33 @@
 
 import Foundation
 
-/// 体重派生统计。`current` / `weeklyDelta` 由周序列计算；`cumulativeChange` 为契约常量。
+/// 体重派生统计。`current` / `recentDelta` 由周序列计算；`cumulativeChange` 为契约常量。
 struct WeightStats: Equatable {
     let current: Double          // 计算：周序列末点（四舍五入 1 位）
-    let weeklyDelta: Double      // 计算：末点 − 次末点
+    let recentDelta: Double      // 计算：最近 30 次 末点 − 窗口首点
     let cumulativeChange: Double // 契约常量（原型「较起点」展示值）
 
     /// 距目标 = 当前 − 目标（保留 1 位）。目标可由「我的」编辑，故按需传入。
     func distance(to goalWeight: Double) -> Double {
         (current - goalWeight).rounded(toPlaces: 1)
     }
+}
+
+/// 首页三圆环的「当日真实指标」：睡眠时长 / 锻炼分钟 / 活动热量，及各自目标。
+/// 锻炼与热量的「值 + 目标」均取自「健身」App 的活动环（HKActivitySummary）；
+/// 睡眠时长取当日 sleepAnalysis 聚合，睡眠目标 HealthKit 不提供，用常量。
+struct HomeRingMetrics: Equatable {
+    var sleepHours: Double           // 当日睡眠总时长（小时）
+    var sleepGoalHours: Double       // 睡眠目标（HealthKit 无此项，取常量）
+    var exerciseMinutes: Int         // 健身环·锻炼分钟（appleExerciseTime）
+    var exerciseGoalMinutes: Int     // 健身环·锻炼目标（appleExerciseTimeGoal）
+    var activeKcal: Int              // 健身环·活动热量（activeEnergyBurned）
+    var activeKcalGoal: Int          // 健身环·活动目标（activeEnergyBurnedGoal）
+
+    /// 加载前 / 无数据时的占位（目标取 Apple 常见默认，避免除零）。
+    static let empty = HomeRingMetrics(sleepHours: 0, sleepGoalHours: 8,
+                                       exerciseMinutes: 0, exerciseGoalMinutes: 30,
+                                       activeKcal: 0, activeKcalGoal: 500)
 }
 
 /// 首页圆环指标的原型数据契约值。

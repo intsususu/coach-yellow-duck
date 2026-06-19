@@ -16,15 +16,25 @@ struct HealthApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if appState.isImportPresented {
-                    ImportView()
-                } else {
-                    MainTabView()
+            ZStack {
+                Group {
+                    if appState.isImportPresented {
+                        ImportView()
+                    } else {
+                        MainTabView()
+                    }
+                }
+                .environmentObject(appState)
+
+                // 首页加载完成前，全屏叠加启动页；完成后淡出。
+                if !appState.isInitialLoadComplete {
+                    SplashView()
+                        .transition(.opacity)
+                        .zIndex(1)
                 }
             }
-            .environmentObject(appState)
-            .task { await appState.loadInitialData() }
+            .animation(.easeOut(duration: 0.35), value: appState.isInitialLoadComplete)
+            .task { await appState.startUp() }
         }
     }
 }

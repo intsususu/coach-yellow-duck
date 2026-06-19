@@ -6,12 +6,28 @@ import Foundation
 
 final class MockHealthRepository: HealthDataRepository {
 
-    /// 事件内存存储（初始 4 条，saveEvent 追加到顶部）。
-    private var eventStore: [HealthEvent] = MockHealthRepository.initialEvents
+    /// 事件本机持久化（首次启动落种子；saveEvent 走 upsert）。
+    private let eventStore: EventStore
+
+    init(eventStore: EventStore = EventStore()) {
+        self.eventStore = eventStore
+    }
 
     // MARK: - HealthDataRepository
 
     func requestAuthorization() async throws { }
+
+    func homeRingMetrics() async -> HomeRingMetrics {
+        // 「当日」睡眠取最近一晚；锻炼/热量及目标沿用原型契约值，保证 Mock 视觉一致。
+        let todaySleepHours = Self.recentSleep.last.map { Double($0.totalMinutes) / 60.0 }
+            ?? HomeMetricContract.avgSleepHours
+        return HomeRingMetrics(sleepHours: todaySleepHours.rounded(toPlaces: 1),
+                               sleepGoalHours: 8,
+                               exerciseMinutes: HomeMetricContract.dailyExerciseMinutes,
+                               exerciseGoalMinutes: 90,
+                               activeKcal: HomeMetricContract.dailyExerciseKcal,
+                               activeKcalGoal: 600)
+    }
 
     func weightSeries(range: TimeRange) async -> [WeightSample] {
         switch range {
@@ -34,11 +50,15 @@ final class MockHealthRepository: HealthDataRepository {
     }
 
     func events() async -> [HealthEvent] {
-        eventStore
+        eventStore.load()
     }
 
     func saveEvent(_ event: HealthEvent) async {
-        eventStore.insert(event, at: 0)
+        eventStore.upsert(event)
+    }
+
+    func deleteEvent(_ event: HealthEvent) async {
+        eventStore.delete(event)
     }
 }
 
@@ -93,21 +113,5 @@ private extension MockHealthRepository {
         ExerciseSample(label: "4月", kcal: 8362,  avgHR: 122.6),
         ExerciseSample(label: "5月", kcal: 14841, avgHR: 115.9), // 月末拉伤
         ExerciseSample(label: "6月", kcal: 3714,  avgHR: 109.9), // 不完整月
-    ]
-
-    /// 初始 4 条事件。
-    static let initialEvents: [HealthEvent] = [
-        HealthEvent(id: "e1", type: .travel,  title: "出差 · 上海",
-                    startDate: HealthEvent.date("2026-06-10"), endDate: HealthEvent.date("2026-06-14"),
-                    note: "作息紊乱，运动暂停"),
-        HealthEvent(id: "e2", type: .drink,   title: "饮酒 · 聚餐",
-                    startDate: HealthEvent.date("2026-06-07"), endDate: nil,
-                    note: "深睡下降，效率降到 88%"),
-        HealthEvent(id: "e3", type: .illness, title: "感冒发烧",
-                    startDate: HealthEvent.date("2026-05-31"), endDate: nil,
-                    note: "已就医，停训一周，体重回升 0.6kg"),
-        HealthEvent(id: "e4", type: .injury,  title: "腰肌肉拉伤",
-                    startDate: HealthEvent.date("2026-05-20"), endDate: HealthEvent.date("2026-05-27"),
-                    note: "停训一周，周消耗降到平时 1/3"),
     ]
 }

@@ -1,5 +1,5 @@
 // MainTabView.swift
-// 底部 5 Tab 外壳 + 全局 Toast + 占位事件编辑器 sheet。PRD §3 / §4.3。
+// 底部 5 Tab 外壳 + 全局 Toast + 全局事件记录弹窗（E2）。PRD §3 / §4.3。
 
 import SwiftUI
 
@@ -31,7 +31,7 @@ struct MainTabView: View {
         .tint(.brandBlue)
         .toast(message: appState.toastMessage)
         .sheet(isPresented: $appState.isEventEditorPresented) {
-            EventEditorPlaceholderView()
+            EventEditorView()
         }
     }
 }
