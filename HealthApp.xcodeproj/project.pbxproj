@@ -36,6 +36,7 @@
 		BF0000000000000000000054 /* WeightViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000053 /* WeightViewModel.swift */; };
 		BF0000000000000000000056 /* SleepChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000055 /* SleepChart.swift */; };
 		BF0000000000000000000058 /* ExerciseChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000057 /* ExerciseChart.swift */; };
+		BF000000000000000000005A /* GoalEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000059 /* GoalEditSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -68,6 +69,7 @@
 		FE0000000000000000000053 /* WeightViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "WeightViewModel.swift"; sourceTree = "<group>"; };
 		FE0000000000000000000055 /* SleepChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SleepChart.swift"; sourceTree = "<group>"; };
 		FE0000000000000000000057 /* ExerciseChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ExerciseChart.swift"; sourceTree = "<group>"; };
+		FE0000000000000000000059 /* GoalEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "GoalEditSheet.swift"; sourceTree = "<group>"; };
 		PA0000000000000000000040 /* HealthApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "HealthApp.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -193,6 +195,7 @@
 		6A000000000000000000003B /* Profile */ = {
 			isa = PBXGroup;
 			children = (
+				FE0000000000000000000059 /* GoalEditSheet.swift */,
 				FE000000000000000000001B /* ProfileView.swift */,
 			);
 			path = "Profile";
@@ -336,6 +339,7 @@
 				BF0000000000000000000054 /* WeightViewModel.swift in Sources */,
 				BF0000000000000000000056 /* SleepChart.swift in Sources */,
 				BF0000000000000000000058 /* ExerciseChart.swift in Sources */,
+				BF000000000000000000005A /* GoalEditSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
