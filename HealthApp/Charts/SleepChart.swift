@@ -32,18 +32,31 @@ enum SleepRange: String, CaseIterable, Identifiable {
         }
     }
 
+    /// 可视窗口两端各预留的空白（秒）：让首尾日期刻度有余量、不被裁掉半个字。
+    /// 仅分页的周 / 月需要；6 个月不分页，靠 plotDimension 内边距即可。
+    var edgePaddingSeconds: TimeInterval {
+        switch self {
+        case .week:      return 0.4 * 86_400
+        case .month:     return 1.3 * 86_400
+        case .sixMonths: return 0
+        }
+    }
+
     /// 可视窗口宽度（秒）。`nil` 表示不分页，一次展示全部（6 个月周均）。
     var visibleDomainSeconds: TimeInterval? {
         switch self {
-        // N 个日级数据点首尾只跨 N - 1 天；按点跨度设置窗口，避免末端多出一个空档。
-        case .week:      return 6 * 86_400
-        case .month:     return 29 * 86_400
+        // N 个日级数据点首尾只跨 N - 1 天；窗口 = 点跨度 + 两端留白，使首尾刻度不被裁切。
+        case .week:      return 6 * 86_400 + 2 * edgePaddingSeconds
+        case .month:     return 29 * 86_400 + 2 * edgePaddingSeconds
         case .sixMonths: return nil
         }
     }
 
     var isWeeklyAverage: Bool { self == .sixMonths }
 }
+
+/// 供统一趋势卡的时间过滤按钮复用。
+extension SleepRange: TrendRange {}
 
 struct SleepChart: View {
     /// 周 / 月堆积图数据源（日级，含阶段分解）。
@@ -74,7 +87,7 @@ struct SleepChart: View {
                 AxisMarks(values: axisStride) { value in
                     AxisGridLine().foregroundStyle(Color.hairline)
                     if let date = value.as(Date.self) {
-                        AxisValueLabel(anchor: axisLabelAnchor(for: date)) {
+                        AxisValueLabel(anchor: .top) {
                             Text(axisLabel(for: date))
                                 .font(.system(size: 9, weight: .medium))
                                 .foregroundColor(.textMuted)
@@ -82,8 +95,6 @@ struct SleepChart: View {
                     }
                 }
             }
-            // 去掉默认左右留白；边缘标签通过锚点向绘图区内侧展开。
-            .chartXScale(range: .plotDimension(padding: 0))
             .accessibilityLabel(range.isWeeklyAverage ? "周平均睡眠时长趋势" : "每晚睡眠阶段堆积图")
         )
         .onChange(of: selectedDate) { _, newDate in
@@ -127,7 +138,11 @@ struct SleepChart: View {
             eventMarkers(domain: domain, yFor: { _ in domain.upperBound * 0.94 })
         }
         .chartLegend(.hidden)
-        .chartYScale(domain: domain)
+        // 显式锁定绘图区为「零内边距」：否则 Swift Charts 会因事件菱形符号自动预留像素内边距，
+        // 导致「窗口内有无事件」时绘图宽/高不一致（有事件时右侧变窄、堆积带变矮）。
+        // 横轴留白已包含在 stackedXDomain（数据两端各外扩 edgePadding）中，padding 0 不会裁掉首尾刻度或符号。
+        .chartXScale(domain: stackedXDomain, range: .plotDimension(padding: 0))
+        .chartYScale(domain: domain, range: .plotDimension(padding: 0))
         .chartYAxis { hourAxis(decimals: 0) }
     }
 
@@ -167,7 +182,9 @@ struct SleepChart: View {
 
             eventMarkers(domain: domain, yFor: { nearestWeekly(to: $0) })
         }
-        .chartYScale(domain: domain)
+        .chartXScale(range: .plotDimension(padding: 12))
+        // 同上：锁定纵向绘图区，避免事件符号触发的自动内边距改变折线高度。
+        .chartYScale(domain: domain, range: .plotDimension(padding: 0))
         .chartYAxis { hourAxis(decimals: 1) }
     }
 
@@ -197,12 +214,7 @@ struct SleepChart: View {
                     y: .value("事件位置", yFor(event.startDate))
                 )
                 .foregroundStyle(event.type.color)
-                .symbol {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(event.type.color)
-                        .frame(width: 10, height: 10)
-                        .rotationEffect(.degrees(45))
-                }
+                .symbol { EventMark(color: event.type.color) }
             }
 
             if let selected = selectedEvent {
@@ -257,6 +269,16 @@ struct SleepChart: View {
 
     private func minutes(_ value: Int?) -> Double { Double(value ?? 0) / 60.0 }
 
+    /// 堆积图横轴域：数据首尾各外扩 edgePadding，留出空白，使首尾日期刻度不被裁切。
+    /// 配合 `visibleDomainSeconds`（已含两端留白）与 `resetScrollToLatest`，右端对齐最新一晚时仍留余量。
+    private var stackedXDomain: ClosedRange<Date> {
+        let dates = sortedSamples.map(\.date)
+        let first = dates.first ?? Date()
+        let last = max(first, dates.last ?? first)
+        let pad = range.edgePaddingSeconds
+        return first.addingTimeInterval(-pad)...last.addingTimeInterval(pad)
+    }
+
     /// 当前可视窗口区间；6 个月（无窗口）覆盖整段。
     private var visibleWindow: ClosedRange<Date> {
         guard let seconds = range.visibleDomainSeconds else {
@@ -267,13 +289,21 @@ struct SleepChart: View {
         return scrollPosition...scrollPosition.addingTimeInterval(seconds)
     }
 
-    /// 堆积图 Y 域：按当前窗口内最高一晚总时长自适应（滑动时纵向重新取景）。
+    /// 堆积图 Y 域：按当前窗口内最高一晚的「四阶段堆积总高」自适应（滑动时纵向重新取景）。
+    /// 注意按实际堆积高度（深+核+REM+清醒）取最大值——HealthKit 的 totalMinutes 不含清醒，
+    /// 若只用 totalMinutes 作上界，叠在顶部的清醒带会被裁出框外。
     private var stackedYDomain: ClosedRange<Double> {
         let window = visibleWindow
         let windowSamples = sortedSamples.filter { window.contains($0.date) }
         let base = windowSamples.isEmpty ? sortedSamples : windowSamples
-        let maximum = base.map { Double($0.totalMinutes) / 60.0 }.max() ?? 8
+        let maximum = base.map(stackedHours).max() ?? 8
         return 0...(maximum * 1.08)
+    }
+
+    /// 单晚四阶段堆积总高（小时），与 `stageBands` 的累计口径一致。
+    private func stackedHours(_ sample: SleepSample) -> Double {
+        minutes(sample.deepMinutes) + minutes(sample.coreMinutes)
+            + minutes(sample.remMinutes) + minutes(sample.awakeMinutes)
     }
 
     /// 周均趋势 Y 域：贴合数据上下界并留白。
@@ -353,15 +383,6 @@ struct SleepChart: View {
         case .sixMonths: formatter.dateFormat = "M月"
         }
         return formatter.string(from: date)
-    }
-
-    /// 边缘刻度改为向绘图区内侧展开，图形无需再为标签预留空白数据域。
-    private func axisLabelAnchor(for date: Date) -> UnitPoint {
-        let window = visibleWindow
-        let tolerance: TimeInterval = 60
-        if abs(date.timeIntervalSince(window.lowerBound)) <= tolerance { return .topLeading }
-        if abs(date.timeIntervalSince(window.upperBound)) <= tolerance { return .topTrailing }
-        return .top
     }
 
     private struct StageBand: Identifiable {

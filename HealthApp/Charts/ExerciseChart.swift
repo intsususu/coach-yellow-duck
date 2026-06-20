@@ -30,10 +30,10 @@ struct ExerciseChart: View {
                         x: .value("损伤月份", sample.label),
                         y: .value("事件位置", value(for: sample) * 1.06)
                     )
-                    .foregroundStyle(Color.eventInjury)
+                    .foregroundStyle(Color.eventIllness)
                     .symbol {
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(Color.eventInjury)
+                            .fill(Color.eventIllness)
                             .frame(width: 10, height: 10)
                             .rotationEffect(.degrees(45))
                     }
@@ -63,7 +63,7 @@ struct ExerciseChart: View {
     }
 
     private var injuryEvents: [HealthEvent] {
-        events.filter { $0.type == .injury }
+        events.filter { $0.type == .illness }
     }
 
     private func value(for sample: ExerciseSample) -> Double {

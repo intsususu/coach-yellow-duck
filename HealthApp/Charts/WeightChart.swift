@@ -119,12 +119,7 @@ struct WeightChart: View {
                             y: .value("事件体重", nearestWeight(to: event.startDate))
                         )
                         .foregroundStyle(event.type.color)
-                        .symbol {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(event.type.color)
-                                .frame(width: 10, height: 10)
-                                .rotationEffect(.degrees(45))
-                        }
+                        .symbol { EventMark(color: event.type.color) }
                     }
 
                     if let selected = selectedEvent {

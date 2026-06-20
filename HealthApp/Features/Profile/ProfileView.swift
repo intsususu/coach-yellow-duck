@@ -61,9 +61,9 @@ struct ProfileView: View {
                     Text("178cm · 34 岁 · 男")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.textSecondary)
-                    Label("已连接 Apple 健康", systemImage: "checkmark.circle.fill")
+                    Label(connectionLabel, systemImage: connectionIcon)
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.successGreen)
+                        .foregroundColor(connectionTint)
                 }
                 Spacer()
             }
@@ -114,8 +114,12 @@ struct ProfileView: View {
 
     private var dataSettings: some View {
         settingsGroup(title: "数据与偏好") {
-            settingRow(icon: "heart.text.square.fill", title: "数据来源", value: "Apple 健康 ✓", tint: .successGreen) {
+            settingRow(icon: "heart.text.square.fill", title: "数据来源", value: dataSourceValue, tint: connectionTint) {
+                #if targetEnvironment(simulator)
+                appState.showToast("模拟器：当前使用模拟数据")
+                #else
                 appState.presentHealthImport()
+                #endif
             }
             settingDivider
             settingRow(icon: "scalemass.fill", title: "单位", value: "公斤(kg) ›", tint: .brandBlue) {
@@ -130,7 +134,7 @@ struct ProfileView: View {
 
     private var appSettings: some View {
         settingsGroup(title: "更多") {
-            settingRow(icon: "plus.circle.fill", title: "记录特殊事件", value: "生病/损伤/饮酒/旅行 ›", tint: .brandBlue) {
+            settingRow(icon: "plus.circle.fill", title: "记录特殊事件", value: "伤病/出行/饮酒/其他 ›", tint: .brandBlue) {
                 showsEventTimeline = true
             }
             settingDivider
@@ -210,5 +214,23 @@ struct ProfileView: View {
 
     private func placeholderToast(_ title: String) {
         appState.showToast("\(title)将在后续版本开放")
+    }
+
+    // MARK: - 数据来源展示（模拟器明确标注 mock，真机显示已连接 Apple 健康）
+
+    private var connectionLabel: String {
+        AppConfig.useMockData ? "模拟器 · 模拟数据" : "已连接 Apple 健康"
+    }
+
+    private var connectionIcon: String {
+        AppConfig.useMockData ? "ladybug.fill" : "checkmark.circle.fill"
+    }
+
+    private var connectionTint: Color {
+        AppConfig.useMockData ? .exerciseOrange : .successGreen
+    }
+
+    private var dataSourceValue: String {
+        AppConfig.useMockData ? "模拟数据 · 模拟器" : "Apple 健康 ✓"
     }
 }

@@ -143,7 +143,7 @@ struct ImportView: View {
             .disabled(isConnecting)
 
             Button("稍后手动导入") {
-                appState.continueWithMockData()
+                appState.dismissHealthImport()
             }
             .font(.system(size: 14, weight: .semibold))
             .foregroundColor(.textSecondary)

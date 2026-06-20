@@ -322,9 +322,11 @@ private extension HealthKitRepository {
     }
 
     func sleepDayCount(for range: TimeRange) -> Int {
+        // 取数刻意超出可视窗口，留足屏幕外历史供趋势图横向滑动（与体重图同策略）：
+        // 周窗口 6 天取近 12 周、月窗口 29 天取近 12 个月；6 个月（year）聚合周均需整年日级数据。
         switch range {
-        case .week: return 7
-        case .month: return 30
+        case .week: return 12 * 7
+        case .month: return 365
         case .year, .all: return 365
         }
     }

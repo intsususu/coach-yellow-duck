@@ -43,63 +43,32 @@ struct WeightView: View {
     }
 
     private var rangePicker: some View {
-        Picker("时间范围", selection: $selectedRange) {
-            ForEach(TimeRange.allCases) { range in
-                Text(range.label).tag(range)
-            }
-        }
-        .pickerStyle(.segmented)
-        .tint(.brandBlue)
-        .accessibilityLabel("体重时间范围")
+        TrendRangePicker(selection: $selectedRange,
+                         accent: .brandBlue,
+                         accessibilityLabel: "体重时间范围")
     }
 
     private var chartCard: some View {
-        CardView(background: .weightCardBg) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("体重趋势")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.textPrimary)
-                    Spacer()
-                    // 文字与开关同属一个 Toggle 标签，点击「事件」文字及其周围均可切换。
-                    Toggle(isOn: $showsEvents) {
-                        Text("事件")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.textSecondary)
-                            .padding(.vertical, 6)
-                            .padding(.trailing, 4)
-                            .contentShape(Rectangle())
-                    }
-                    .tint(.brandBlue)
-                    .fixedSize()
-                    .accessibilityLabel("在图上显示事件")
-                }
-
-                if viewModel.isLoading && viewModel.samples.isEmpty {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, minHeight: 230)
-                } else if viewModel.samples.isEmpty {
-                    Text("暂无体重数据")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.textSecondary)
-                        .frame(maxWidth: .infinity, minHeight: 230)
-                } else {
-                    WeightChart(samples: viewModel.samples,
-                                events: appState.events,
-                                showsEvents: showsEvents,
-                                range: selectedRange,
-                                scrollPosition: $scrollPosition,
-                                selectedEvent: $selectedEvent)
-                        .frame(height: 230)
-                        .animation(.easeInOut(duration: 0.25), value: selectedRange)
-                        .animation(.easeInOut(duration: 0.2), value: showsEvents)
-                }
-
-                HStack(spacing: 14) {
-                    legendLine(color: .brandBlue, title: "体重")
-                    if showsEvents {
-                        eventLegend
-                    }
+        TrendChartCard(title: "体重趋势",
+                       accent: .brandBlue,
+                       background: .weightCardBg,
+                       showsEvents: $showsEvents,
+                       isLoading: viewModel.isLoading,
+                       isEmpty: viewModel.samples.isEmpty,
+                       emptyText: "暂无体重数据") {
+            WeightChart(samples: viewModel.samples,
+                        events: appState.events,
+                        showsEvents: showsEvents,
+                        range: selectedRange,
+                        scrollPosition: $scrollPosition,
+                        selectedEvent: $selectedEvent)
+                .animation(.easeInOut(duration: 0.25), value: selectedRange)
+                .animation(.easeInOut(duration: 0.2), value: showsEvents)
+        } legend: {
+            HStack(spacing: 14) {
+                legendLine(color: .brandBlue, title: "体重")
+                if showsEvents {
+                    eventLegend
                 }
             }
         }
@@ -169,7 +138,7 @@ struct WeightView: View {
 
     private func legendTitle(for type: EventType) -> String {
         switch type {
-        case .injury, .travel: return "\(type.label)(段)"
+        case .illness, .travel: return "\(type.label)(段)"
         default: return type.label
         }
     }

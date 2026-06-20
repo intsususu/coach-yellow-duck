@@ -58,8 +58,9 @@ struct EventEditorView: View {
                 }
             }
         }
-        .environment(\.locale, Locale(identifier: "zh-Hans-CN"))
-        .environment(\.calendar, Self.localizedCalendar)
+        // 注意：不要在此覆盖 \.calendar / \.locale 环境。覆盖后 compact DatePicker 的
+        // 日历弹层在点选日期时不会自动收起（提交用的是覆盖日历，收起触发器却不触发）。
+        // 中文界面靠设备本地化即可；日期天数计算用显式 localizedCalendar（见 EventDateSection）。
     }
 
     // MARK: - 类型
@@ -81,9 +82,9 @@ struct EventEditorView: View {
             type = option
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: editorSymbol(for: option))
+                Image(systemName: option.sfSymbol)
                     .font(.system(size: 13, weight: .semibold))
-                Text(editorLabel(for: option))
+                Text(option.label)
                     .font(.system(size: 14, weight: .semibold))
             }
             .frame(maxWidth: .infinity)
@@ -100,14 +101,6 @@ struct EventEditorView: View {
         .animation(.easeInOut(duration: 0.15), value: type)
     }
 
-    private func editorLabel(for option: EventType) -> String {
-        option == .injury ? "出差" : option.label
-    }
-
-    private func editorSymbol(for option: EventType) -> String {
-        option == .injury ? "briefcase.fill" : option.sfSymbol
-    }
-
     // MARK: - 持续切换
 
     private var durationSection: some View {
@@ -117,6 +110,10 @@ struct EventEditorView: View {
                 Text("时间段").tag(true)
             }
             .pickerStyle(.segmented)
+            .onChange(of: isPeriod) { isPeriod in
+                // 切到「时间段」时才把结束日对齐到不早于开始日；单日模式无需维护结束日。
+                if isPeriod, endDate < startDate { endDate = startDate }
+            }
         }
     }
 
@@ -130,73 +127,23 @@ struct EventEditorView: View {
 
     private var calendar: Calendar { Self.localizedCalendar }
 
+    // 日期区拆成独立 Equatable 子视图：标题/备注输入不再每次按键都重绘内嵌的
+    // UIKit DatePicker，缓解呼出输入法时的卡顿。
     private var dateSection: some View {
         fieldGroup(title: isPeriod ? "起止日期" : "日期") {
-            VStack(spacing: 0) {
-                if isPeriod {
-                    compactDatePicker("开始日期", selection: $startDate)
-                        .onChange(of: startDate) { newValue in
-                            if endDate < newValue { endDate = newValue }
-                        }
-                    Divider().background(Color.hairline)
-                    compactDatePicker("结束日期", selection: $endDate, in: startDate...)
-                    Divider().background(Color.hairline)
-                    HStack {
-                        Text("持续天数")
-                        Spacer()
-                        Text("共 \(periodDayCount) 天")
-                            .fontWeight(.semibold)
-                            .foregroundColor(.brandBlue)
-                    }
-                    .font(.system(size: 14))
-                    .foregroundColor(.textSecondary)
-                    .padding(.vertical, 10)
-                } else {
-                    compactDatePicker("选择日期", selection: $startDate)
-                        .onChange(of: startDate) { newValue in
-                            if endDate < newValue { endDate = newValue }
-                        }
-                }
-            }
+            EventDateSection(isPeriod: isPeriod,
+                             startDate: $startDate,
+                             endDate: $endDate,
+                             calendar: calendar)
+                .equatable()
         }
-    }
-
-    private func compactDatePicker(_ label: String,
-                                   selection: Binding<Date>) -> some View {
-        DatePicker(selection: selection, displayedComponents: .date) {
-            Text(label)
-                .font(.system(size: 14))
-                .foregroundColor(.textSecondary)
-        }
-        .datePickerStyle(.compact)
-        .tint(.brandBlue)
-        .padding(.vertical, 8)
-    }
-
-    private func compactDatePicker(_ label: String,
-                                   selection: Binding<Date>,
-                                   in range: PartialRangeFrom<Date>) -> some View {
-        DatePicker(selection: selection, in: range, displayedComponents: .date) {
-            Text(label)
-                .font(.system(size: 14))
-                .foregroundColor(.textSecondary)
-        }
-        .datePickerStyle(.compact)
-        .tint(.brandBlue)
-        .padding(.vertical, 8)
-    }
-
-    private var periodDayCount: Int {
-        let from = calendar.startOfDay(for: startDate)
-        let to = calendar.startOfDay(for: endDate)
-        return (calendar.dateComponents([.day], from: from, to: to).day ?? 0) + 1
     }
 
     // MARK: - 标题 / 备注
 
     private var titleSection: some View {
         fieldGroup(title: "标题（可选）") {
-            TextField(editorLabel(for: type), text: $title)
+            TextField(type.label, text: $title)
                 .font(.system(size: 15))
                 .foregroundColor(.textPrimary)
         }
@@ -247,12 +194,89 @@ struct EventEditorView: View {
         let event = HealthEvent(
             id: editingEvent?.id ?? UUID().uuidString,
             type: type,
-            title: trimmedTitle.isEmpty ? editorLabel(for: type) : trimmedTitle,
+            title: trimmedTitle.isEmpty ? type.label : trimmedTitle,
             startDate: startDate,
             endDate: isPeriod ? max(endDate, startDate) : nil,
             note: note.trimmingCharacters(in: .whitespacesAndNewlines)
         )
         Task { await appState.saveEvent(event) }
         dismiss()
+    }
+}
+
+// MARK: - 日期区子视图
+
+/// 独立出来的日期选择区。声明为 `Equatable`，配合 `.equatable()` 让父视图在标题/备注
+/// 等无关状态变化时跳过本区重绘——内嵌的 compact `DatePicker` 桥接 UIKit，重绘代价高，
+/// 频繁重建正是输入法卡顿与（早期版本）日期弹层不消失的诱因。
+private struct EventDateSection: View, Equatable {
+    let isPeriod: Bool
+    @Binding var startDate: Date
+    @Binding var endDate: Date
+    let calendar: Calendar
+
+    // 仅按值比较，忽略 Binding：标题/备注变化时三项不变即跳过重绘。
+    static func == (lhs: EventDateSection, rhs: EventDateSection) -> Bool {
+        lhs.isPeriod == rhs.isPeriod &&
+        lhs.startDate == rhs.startDate &&
+        lhs.endDate == rhs.endDate
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if isPeriod {
+                compactDatePicker("开始日期", selection: $startDate)
+                    .onChange(of: startDate) { newValue in
+                        if endDate < newValue { endDate = newValue }
+                    }
+                Divider().background(Color.hairline)
+                compactDatePicker("结束日期", selection: $endDate, in: startDate...)
+                Divider().background(Color.hairline)
+                HStack {
+                    Text("持续天数")
+                    Spacer()
+                    Text("共 \(periodDayCount) 天")
+                        .fontWeight(.semibold)
+                        .foregroundColor(.brandBlue)
+                }
+                .font(.system(size: 14))
+                .foregroundColor(.textSecondary)
+                .padding(.vertical, 10)
+            } else {
+                // 单日模式不维护结束日，避免选日期时的额外状态写入打断弹层关闭。
+                compactDatePicker("选择日期", selection: $startDate)
+            }
+        }
+    }
+
+    private func compactDatePicker(_ label: String,
+                                   selection: Binding<Date>) -> some View {
+        DatePicker(selection: selection, displayedComponents: .date) {
+            Text(label)
+                .font(.system(size: 14))
+                .foregroundColor(.textSecondary)
+        }
+        .datePickerStyle(.compact)
+        .tint(.brandBlue)
+        .padding(.vertical, 8)
+    }
+
+    private func compactDatePicker(_ label: String,
+                                   selection: Binding<Date>,
+                                   in range: PartialRangeFrom<Date>) -> some View {
+        DatePicker(selection: selection, in: range, displayedComponents: .date) {
+            Text(label)
+                .font(.system(size: 14))
+                .foregroundColor(.textSecondary)
+        }
+        .datePickerStyle(.compact)
+        .tint(.brandBlue)
+        .padding(.vertical, 8)
+    }
+
+    private var periodDayCount: Int {
+        let from = calendar.startOfDay(for: startDate)
+        let to = calendar.startOfDay(for: endDate)
+        return (calendar.dateComponents([.day], from: from, to: to).day ?? 0) + 1
     }
 }

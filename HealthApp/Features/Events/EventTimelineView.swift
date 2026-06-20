@@ -48,7 +48,7 @@ struct EventTimelineView: View {
 
     // MARK: - 类型筛选
 
-    private var filterOptions: [EventType?] { [nil, .illness, .injury, .drink, .travel] }
+    private var filterOptions: [EventType?] { [nil, .illness, .travel, .drink, .other] }
 
     private var filterChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {

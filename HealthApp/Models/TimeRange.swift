@@ -36,3 +36,6 @@ enum TimeRange: String, CaseIterable, Identifiable {
         visibleDomainDays.map { Double($0) * 86_400 }
     }
 }
+
+/// 供统一趋势卡的时间过滤按钮复用。
+extension TimeRange: TrendRange {}

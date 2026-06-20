@@ -53,15 +53,13 @@ extension Color {
     static let hairline       = Color(hex: "#ededf0")
 
     // MARK: - 事件类型色板（PRD §4.2）
-    static let eventIllness   = Color(hex: "#ef4444")
-    static let eventInjury    = Color(hex: "#ea580c")
-    static let eventDrink     = Color(hex: "#7c3aed")
-    static let eventTravel    = Color(hex: "#0891b2")
-    static let eventOther     = Color(hex: "#64748b")
+    static let eventIllness   = Color(hex: "#ef4444")  // 伤病：红
+    static let eventDrink     = Color(hex: "#7c3aed")  // 饮酒：紫
+    static let eventTravel    = Color(hex: "#3b82f6")  // 出行：蓝
+    static let eventOther     = Color(hex: "#64748b")  // 其他：灰
 
     static let eventIllnessBg = Color(hex: "#fdecec")
-    static let eventInjuryBg  = Color(hex: "#fdf1ea")
     static let eventDrinkBg   = Color(hex: "#f3eefc")
-    static let eventTravelBg  = Color(hex: "#e7f5f8")
+    static let eventTravelBg  = Color(hex: "#eaf1fe")
     static let eventOtherBg   = Color(hex: "#f1f3f5")
 }

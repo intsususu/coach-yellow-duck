@@ -172,7 +172,7 @@ struct ExerciseView: View {
 
                 HStack(spacing: 16) {
                     legend(color: .exerciseOrange, title: metric == .kcal ? "消耗" : "心率")
-                    legend(color: .eventInjury, title: "损伤事件", diamond: true)
+                    legend(color: .eventIllness, title: "伤病事件", diamond: true)
                 }
             }
         }
@@ -256,7 +256,7 @@ struct ExerciseView: View {
 
     private var latestInjuryEvent: HealthEvent? {
         appState.events
-            .filter { $0.type == .injury }
+            .filter { $0.type == .illness }
             .max { $0.startDate < $1.startDate }
     }
 
