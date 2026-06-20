@@ -102,7 +102,7 @@ struct WeightChart: View {
                         yEnd: .value("体重", sample.kg)
                     )
                     .foregroundStyle(
-                        LinearGradient(colors: [.brandBlue.opacity(0.24), .brandBlue.opacity(0.01)],
+                        LinearGradient(colors: [.weightGreen.opacity(0.24), .weightGreen.opacity(0.01)],
                                        startPoint: .top,
                                        endPoint: .bottom)
                     )
@@ -112,14 +112,14 @@ struct WeightChart: View {
                         x: .value("日期", sample.date),
                         y: .value("体重", sample.kg)
                     )
-                    .foregroundStyle(Color.brandBlue)
+                    .foregroundStyle(Color.weightGreen)
                     .lineStyle(StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round))
                     .interpolationMethod(.catmullRom)
                 }
 
                 if let last = sortedSamples.last {
                     PointMark(x: .value("日期", last.date), y: .value("体重", last.kg))
-                        .foregroundStyle(Color.brandBlue)
+                        .foregroundStyle(Color.weightGreen)
                         .symbolSize(55)
 
                     // 末尾留白锚点：把绘图域向右撑出一点，避免最后一个圆点贴边被裁掉半个。

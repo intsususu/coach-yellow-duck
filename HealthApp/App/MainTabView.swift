@@ -16,13 +16,13 @@ struct MainTabView: View {
                 .tabItem { Label("体重", systemImage: "scalemass") }
                 .tag(Tab.weight)
 
-            SleepView()
-                .tabItem { Label("睡眠", systemImage: "moon") }
-                .tag(Tab.sleep)
-
             ExerciseView()
                 .tabItem { Label("运动", systemImage: "figure.run") }
                 .tag(Tab.exercise)
+
+            SleepView()
+                .tabItem { Label("睡眠", systemImage: "moon") }
+                .tag(Tab.sleep)
 
             ProfileView()
                 .tabItem { Label("我的", systemImage: "person") }

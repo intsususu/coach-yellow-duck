@@ -9,7 +9,7 @@ struct WeightSparkline: View {
     var body: some View {
         MetricSparkline(
             points: samples.map { DailyMetric(date: $0.date, value: $0.kg) },
-            color: .brandBlue
+            color: .weightGreen
         )
     }
 }

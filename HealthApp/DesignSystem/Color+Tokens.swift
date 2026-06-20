@@ -26,7 +26,8 @@ extension Color {
 
 extension Color {
     // MARK: - 主色 / 维度色（PRD §4.1）
-    static let brandBlue      = Color(hex: "#2563eb")  // 主色：体重、主按钮、选中态
+    static let brandBlue      = Color(hex: "#2563eb")  // 全局主色：主按钮、选中态
+    static let weightGreen    = Color(hex: "#16a34a")  // 体重维度色（复用达标绿值）
     static let sleepIndigo    = Color(hex: "#4f46e5")  // 睡眠
     static let exerciseOrange = Color(hex: "#ea580c")  // 运动 / 损伤
     static let successGreen   = Color(hex: "#16a34a")  // 下降趋势、达标
@@ -40,7 +41,7 @@ extension Color {
     // MARK: - 背景
     static let appBg          = Color(hex: "#f5f6f8")
     static let cardBg         = Color(hex: "#ffffff")
-    static let weightCardBg   = Color(hex: "#eef4fd")  // 体重 hero 卡背景
+    static let weightCardBg   = Color(hex: "#ecf6ef")  // 体重 hero 卡背景
     static let sleepCardBg     = Color(hex: "#eef0fd")  // 睡眠 hero 卡背景
     static let exerciseCardBg  = Color(hex: "#fdf2ec")  // 运动 hero 卡背景
 
@@ -53,7 +54,7 @@ extension Color {
     static let hairline       = Color(hex: "#ededf0")
 
     // MARK: - 事件类型色板（PRD §4.2）
-    static let eventIllness   = Color(hex: "#ef4444")  // 伤病：红
+    static let eventIllness   = Color(hex: "#dc2626")  // 伤病：红（red-600，加深以与运动橙拉开）
     static let eventDrink     = Color(hex: "#7c3aed")  // 饮酒：紫
     static let eventTravel    = Color(hex: "#a16207")  // 出行：棕
     static let eventOther     = Color(hex: "#64748b")  // 其他：灰

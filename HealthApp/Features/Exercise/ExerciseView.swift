@@ -345,7 +345,7 @@ struct ExerciseView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// 运动天数：有运动的天数（绿）/ 周期总天数（黑）。
+    /// 运动天数：有运动的天数（橙）/ 周期总天数（黑）。
     private func workoutDaysStat() -> some View {
         VStack(spacing: 5) {
             Text("运动天数")
@@ -354,7 +354,7 @@ struct ExerciseView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             HStack(alignment: .firstTextBaseline, spacing: 1) {
-                (Text("\(exerciseDayCount)").foregroundColor(.successGreen)
+                (Text("\(exerciseDayCount)").foregroundColor(.exerciseOrange)
                     + Text("/\(selectedRange.windowDayCount)").foregroundColor(.textPrimary))
                     .font(.system(size: 19, weight: .heavy))
                 Text("天")

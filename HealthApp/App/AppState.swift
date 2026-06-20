@@ -67,11 +67,14 @@ final class AppState: ObservableObject {
         events = await repository.events()
     }
 
-    /// 应用启动流程：加载首页数据，达到最短展示时长后撤下启动页。
+    /// 应用启动流程：加载首页数据 + 预热各趋势页，达到最短展示时长后撤下启动页。
     func startUp() async {
         guard !isInitialLoadComplete else { return }
         let start = Date()
-        await loadInitialData()
+        // 事件（首页/各页叠加所需）与三个趋势页首屏数据并行预热，splash 期间一次拉齐。
+        async let events: Void = loadInitialData()
+        async let warm: Void = repository.prewarm()
+        _ = await (events, warm)
         let remaining = minimumSplashDuration - Date().timeIntervalSince(start)
         if remaining > 0 {
             try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
@@ -85,16 +88,10 @@ final class AppState: ObservableObject {
         userDefaults.set(true, forKey: StorageKey.healthAuthorizationCompleted)
         isImportPresented = false
         await loadInitialData()
+        // 授权后预热：启动时（授权前）的预热只能拿到空结果，此处补齐各趋势页缓存。
+        await repository.prewarm()
     }
 
-    /// A3 次按钮「稍后」：撤下引导但不写入完成标记，下次启动仍会再次引导授权。
-    func dismissHealthImport() {
-        isImportPresented = false
-    }
-
-    func presentHealthImport() {
-        isImportPresented = true
-    }
 
     /// 顶部 Toast：显示约 2.2s 后自动隐藏（再次调用会取消上一次计时）。
     func showToast(_ message: String) {

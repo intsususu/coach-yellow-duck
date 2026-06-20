@@ -27,7 +27,6 @@ struct WeightView: View {
                     eventDetailCard
                     statisticsCard
                     recentRecordsCard
-                    insightCard
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -65,13 +64,13 @@ struct WeightView: View {
 
     private var rangePicker: some View {
         TrendRangePicker(selection: $selectedRange,
-                         accent: .brandBlue,
+                         accent: .weightGreen,
                          accessibilityLabel: "体重时间范围")
     }
 
     private var chartCard: some View {
         TrendChartCard(title: "体重趋势",
-                       accent: .brandBlue,
+                       accent: .weightGreen,
                        background: .weightCardBg,
                        isLoading: viewModel.isLoading,
                        isEmpty: viewModel.samples.isEmpty,
@@ -87,7 +86,7 @@ struct WeightView: View {
                 .animation(.easeInOut(duration: 0.2), value: showsEvents)
         } legend: {
             HStack(spacing: 14) {
-                legendLine(color: .brandBlue, title: "体重")
+                legendLine(color: .weightGreen, title: "体重")
                 if showsEvents {
                     eventLegend
                 }
@@ -259,7 +258,7 @@ struct WeightView: View {
             VStack(alignment: .leading, spacing: 12) {
                 SectionTitle("体重统计")
                 HStack(spacing: 0) {
-                    statistic(title: "当前", value: stats.current, color: .brandBlue)
+                    statistic(title: "当前", value: stats.current, color: .weightGreen)
                     statistic(title: "今年最低", value: stats.yearLow, color: .textPrimary)
                     statistic(title: "历史最低", value: stats.allTimeLow, color: .textPrimary)
                 }
@@ -304,13 +303,13 @@ struct WeightView: View {
                             if index == 0 {
                                 Text("最新记录")
                                     .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(.brandBlue)
+                                    .foregroundColor(.weightGreen)
                             }
                         }
                         Spacer()
                         Text(Self.weightText(sample.kg) + " kg")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(index == 0 ? .brandBlue : .textPrimary)
+                            .foregroundColor(index == 0 ? .weightGreen : .textPrimary)
                     }
                     .padding(.vertical, 8)
                     if index < viewModel.recentRecords.count - 1 {
@@ -319,30 +318,6 @@ struct WeightView: View {
                 }
             }
         }
-    }
-
-    private var insightCard: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "lightbulb.fill")
-                .foregroundColor(.exerciseOrange)
-            VStack(alignment: .leading, spacing: 5) {
-                Text("关联洞察")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.textPrimary)
-                Text("拉伤那周运动暂停，体重回升 0.6kg；出差期间作息乱、下降也停滞。")
-                    .font(.system(size: 13))
-                    .foregroundColor(.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.brandBlue.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color.brandBlue.opacity(0.18), lineWidth: 1)
-        )
     }
 
     private static let recordDateFormatter: DateFormatter = {

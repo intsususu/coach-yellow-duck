@@ -50,11 +50,6 @@ enum EventType: String, CaseIterable, Codable {
         }
     }
 
-    /// 是否会直接关联睡眠趋势。`travel` 同时覆盖旅行与出差场景。
-    var isSleepRelated: Bool {
-        self == .drink || self == .travel
-    }
-
     /// 是否会直接关联运动趋势：伤病停训、出行打乱训练计划。
     var isExerciseRelated: Bool {
         self == .illness || self == .travel

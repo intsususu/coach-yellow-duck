@@ -4,6 +4,8 @@
 import Foundation
 
 protocol HealthDataRepository: AnyObject {
+    /// 启动预热：splash 期间提前拉好各趋势页首屏数据。默认空操作，仅缓存装饰器实现。
+    func prewarm() async
     /// 请求数据源所需授权。Mock 为空操作，HealthKit 只申请读取权限。
     func requestAuthorization() async throws
     /// 首页指标卡当日数：当日睡眠时长 + 健身环锻炼分钟/活动热量及其目标。
@@ -31,4 +33,9 @@ protocol HealthDataRepository: AnyObject {
     func events() async -> [HealthEvent]
     func saveEvent(_ event: HealthEvent) async
     func deleteEvent(_ event: HealthEvent) async
+}
+
+extension HealthDataRepository {
+    /// 默认无预热：Mock / HealthKit 直连数据源不需要，由 CachingHealthRepository 重写。
+    func prewarm() async {}
 }

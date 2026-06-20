@@ -8,29 +8,50 @@ struct ImportView: View {
     @State private var isConnecting = false
     @State private var errorMessage: String?
 
+    /// true：首次启动的强制授权引导（应用根部全屏门闩，无返回）。
+    /// false：已授权后从「我的 · 数据来源」二次进入，作为可返回的管理页（系统返回按钮 + 左缘右滑）。
+    var isOnboarding: Bool = true
+
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    header
-                    steps
-                    privacyNote
-                    actions
-                }
+        if isOnboarding {
+            // 门闩：自带 NavigationStack 以显示标题栏。
+            NavigationStack { content }
+        } else {
+            // 管理页：由「我的」的 NavigationStack 压栈呈现，沿用系统返回按钮与左缘返回手势。
+            content
+        }
+    }
+
+    private var content: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                header
+                steps
+                privacyNote
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 28)
+            .padding(.bottom, 12)
+        }
+        .background(Color.appBg.ignoresSafeArea())
+        // CTA 固定在底部安全区之上：随 NavigationStack 压栈时自动避让底部 Tab 栏，不再与 Dock 重叠。
+        .safeAreaInset(edge: .bottom) {
+            actions
                 .padding(.horizontal, 20)
-                .padding(.vertical, 28)
-            }
-            .background(Color.appBg.ignoresSafeArea())
-            .navigationTitle("导入健康数据")
-            .navigationBarTitleDisplayMode(.inline)
-            .alert("连接失败", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
-                Button("知道了", role: .cancel) { errorMessage = nil }
-            } message: {
-                Text(errorMessage ?? "请稍后重试")
-            }
+                .padding(.top, 12)
+                .padding(.bottom, 8)
+                .background(Color.appBg)
+        }
+        .navigationTitle("导入健康数据")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(false)
+        .alert("连接失败", isPresented: Binding(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("知道了", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "请稍后重试")
         }
     }
 
@@ -76,22 +97,20 @@ struct ImportView: View {
                             detail: String,
                             tint: Color) -> some View {
         CardView {
-            HStack(spacing: 14) {
-                ZStack(alignment: .topTrailing) {
-                    Image(systemName: icon)
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundColor(tint)
-                        .frame(width: 48, height: 48)
-                        .background(tint.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    Text(number)
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(width: 18, height: 18)
-                        .background(tint)
-                        .clipShape(Circle())
-                        .offset(x: 5, y: -5)
-                }
+            HStack(spacing: 12) {
+                // 步骤序号：明确表示「第几步」，而非角标计数。
+                Text(number)
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundColor(tint)
+                    .frame(width: 24, height: 24)
+                    .background(tint.opacity(0.12))
+                    .clipShape(Circle())
+                Image(systemName: icon)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(tint)
+                    .frame(width: 48, height: 48)
+                    .background(tint.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.system(size: 15, weight: .bold))
@@ -120,35 +139,26 @@ struct ImportView: View {
     }
 
     private var actions: some View {
-        VStack(spacing: 12) {
-            Button {
-                Task { await connect() }
-            } label: {
-                HStack(spacing: 8) {
-                    if isConnecting {
-                        ProgressView().tint(.white)
-                    } else {
-                        Image(systemName: "heart.fill")
-                    }
-                    Text(isConnecting ? "正在连接…" : "连接 Apple 健康")
+        Button {
+            Task { await connect() }
+        } label: {
+            HStack(spacing: 8) {
+                if isConnecting {
+                    ProgressView().tint(.white)
+                } else {
+                    Image(systemName: "heart.fill")
                 }
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 15)
-                .background(Color.brandBlue)
-                .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                Text(isConnecting ? "正在连接…" : "连接 Apple 健康")
             }
-            .buttonStyle(.plain)
-            .disabled(isConnecting)
-
-            Button("稍后手动导入") {
-                appState.dismissHealthImport()
-            }
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundColor(.textSecondary)
-            .disabled(isConnecting)
+            .font(.system(size: 16, weight: .bold))
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 15)
+            .background(Color.brandBlue)
+            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
         }
+        .buttonStyle(.plain)
+        .disabled(isConnecting)
     }
 
     @MainActor

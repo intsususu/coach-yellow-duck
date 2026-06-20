@@ -516,7 +516,6 @@ struct SleepChart: View {
         let dates = plottedDates
         guard let first = dates.first, let last = dates.last else { return [] }
         return events.filter { event in
-            guard event.type.isSleepRelated else { return false }
             let eventEnd = event.endDate ?? event.startDate
             return event.startDate <= last && eventEnd >= first
         }
