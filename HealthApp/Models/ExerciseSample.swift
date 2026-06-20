@@ -3,28 +3,34 @@
 
 import SwiftUI
 
-struct ExerciseSample: Identifiable, Equatable {
+struct ExerciseSample: Identifiable, Equatable, Codable {
     let id = UUID()
     let month: Date      // 该月起始日：月度图按月在横轴定位、支持跨年横滑
     let label: String    // 月份/日期标签，如 "1月"
     let kcal: Double      // 消耗千卡
     var avgHR: Double?    // 平均心率
     var minutes: Int?     // 时长
+
+    // 快照持久化：id 仅供 SwiftUI Identifiable，无需编码，解码时自动重生。
+    private enum CodingKeys: String, CodingKey { case month, label, kcal, avgHR, minutes }
 }
 
 /// 单次运动记录（按次）。供运动统计卡计算运动天数 / 次数 / 时长 / 类型占比 / 时间段。
 /// 与按日活动消耗（DailyMetric）不同：这里只含「主动开始的一次锻炼」，无锻炼的日不会出现。
-struct WorkoutSession: Identifiable, Equatable {
+struct WorkoutSession: Identifiable, Equatable, Codable {
     let id = UUID()
     let start: Date     // 运动开始时间（含时分，用于划分时间段）
     let type: WorkoutKind
     let minutes: Int    // 时长（分钟）
     let kcal: Double    // 本次活动消耗（千卡）
     var avgHR: Double?  // 本次平均心率（次/分），无记录时为 nil
+
+    // 快照持久化：id 仅供 SwiftUI Identifiable，无需编码，解码时自动重生。
+    private enum CodingKeys: String, CodingKey { case start, type, minutes, kcal, avgHR }
 }
 
 /// 运动类型。占比卡按类型聚合计数。
-enum WorkoutKind: String, CaseIterable, Identifiable {
+enum WorkoutKind: String, CaseIterable, Identifiable, Codable {
     case running
     case strength
     case cycling

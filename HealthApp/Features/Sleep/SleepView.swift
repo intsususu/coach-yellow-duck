@@ -28,8 +28,8 @@ struct SleepView: View {
                 VStack(spacing: 14) {
                     rangePicker
                     trendChartCard
-                    lowQualityAnalysisCard
                     eventDetailCard
+                    lowQualityAnalysisCard
                     summaryCard
                 }
                 .padding(.horizontal, 16)
@@ -82,7 +82,7 @@ struct SleepView: View {
             longMetricCard(title: "平均睡眠时长",
                            value: avgHoursText, unit: "小时",
                            detail: "\(windowLabel)平均时长",
-                           color: .successGreen,
+                           color: .sleepCore,
                            trend: totalHoursSeries)
             longMetricCard(title: "平均深度睡眠",
                            value: "\(avgDeepMinutes)", unit: "分钟",
@@ -645,7 +645,7 @@ struct SleepView: View {
         return Array(weeks.suffix(26))
     }
 
-    /// 仅当前可视窗口内出现过的睡眠关联事件类型，按枚举顺序排列。
+    /// 当前可视窗口内出现过的事件类型，按枚举顺序排列。
     private var windowEventTypes: [EventType] {
         let present = Set(windowEvents.map(\.type))
         return EventType.allCases.filter { present.contains($0) }
@@ -654,7 +654,6 @@ struct SleepView: View {
     private var windowEvents: [HealthEvent] {
         let window = visibleWindow
         return appState.events.filter { event in
-            guard event.type.isSleepRelated else { return false }
             let end = event.endDate ?? event.startDate
             return event.startDate <= window.upperBound && end >= window.lowerBound
         }

@@ -28,6 +28,31 @@ final class HomeViewModel: ObservableObject {
         energyTrend = await energyTask
     }
 
+    /// 首页三指标 hero 数的「最新一笔」：值 + 日期 + 是否当日测量。
+    /// 当日有数据则显示「今日 X」，否则显示「最新 X」并附灰字日期。
+    struct LatestMetric {
+        let value: Double
+        let date: Date?
+        /// 最新一笔是否就是今天测得（无日期视为非当日）。
+        var isToday: Bool {
+            guard let date else { return false }
+            return Calendar.current.isDateInToday(date)
+        }
+    }
+
+    /// 最新体重（末点 kg 与测量日期）。
+    var latestWeight: LatestMetric {
+        LatestMetric(value: stats?.current ?? 0, date: weightHistory.last?.date)
+    }
+    /// 最新睡眠时长（末点小时数与测量日期）。
+    var latestSleep: LatestMetric {
+        LatestMetric(value: sleepTrend.last?.value ?? 0, date: sleepTrend.last?.date)
+    }
+    /// 最新活动热量（末点千卡与测量日期）。
+    var latestEnergy: LatestMetric {
+        LatestMetric(value: energyTrend.last?.value ?? 0, date: energyTrend.last?.date)
+    }
+
     /// 最近 30 日睡眠时长日均（小时，保留 1 位）。
     var sleepAverage: Double? { Self.average(sleepTrend, places: 1) }
     /// 最近 30 日活动热量日均（千卡，取整）。

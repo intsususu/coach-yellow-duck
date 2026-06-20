@@ -68,16 +68,14 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 1) {
-                            Text("最新体重")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.textSecondary)
+                            metricTitle(name: "体重", latest: vm.latestWeight)
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
                                 Text(Self.weightString(vm.stats?.current))
                                     .font(.system(size: 32, weight: .black))
-                                    .foregroundColor(.brandBlue)
+                                    .foregroundColor(.weightGreen)
                                 Text("kg")
                                     .font(.system(size: 15, weight: .bold))
-                                    .foregroundColor(.brandBlue.opacity(0.7))
+                                    .foregroundColor(.weightGreen.opacity(0.7))
                             }
                         }
                         Spacer()
@@ -95,7 +93,7 @@ struct HomeView: View {
                         Spacer()
                         Text("查看趋势 ›")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.brandBlue)
+                            .foregroundColor(.weightGreen)
                     }
                 }
             }
@@ -114,8 +112,9 @@ struct HomeView: View {
     private var sleepCard: some View {
         let avg = vm.sleepAverage.map { "近30日均 \(String(format: "%.1f", $0))h" } ?? "近30日均 --"
         return metricCard(
-            title: "今日睡眠时长",
-            value: String(format: "%.1f", vm.ringMetrics.sleepHours),
+            name: "睡眠时长",
+            latest: vm.latestSleep,
+            value: String(format: "%.1f", vm.latestSleep.value),
             unit: "h",
             badge: avg,
             footnote: "最近 30 日睡眠时长趋势",
@@ -131,8 +130,9 @@ struct HomeView: View {
     private var exerciseCard: some View {
         let avg = vm.energyAverage.map { "近30日均 \(Int($0))千卡" } ?? "近30日均 --"
         return metricCard(
-            title: "今日活动热量",
-            value: "\(vm.ringMetrics.activeKcal)",
+            name: "活动热量",
+            latest: vm.latestEnergy,
+            value: "\(Int(vm.latestEnergy.value))",
             unit: "千卡",
             badge: avg,
             footnote: "最近 30 日活动热量趋势",
@@ -144,7 +144,8 @@ struct HomeView: View {
     }
 
     /// 体重卡同款的指标卡：标题 + 大号数值 + 右上角徽标 + 30 日趋势小折线 + 查看趋势。
-    private func metricCard(title: String, value: String, unit: String,
+    private func metricCard(name: String, latest: HomeViewModel.LatestMetric,
+                            value: String, unit: String,
                             badge: String, footnote: String, trend: [DailyMetric],
                             color: Color, background: Color, tab: Tab) -> some View {
         Button {
@@ -154,9 +155,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(title)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.textSecondary)
+                            metricTitle(name: name, latest: latest)
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
                                 Text(value)
                                     .font(.system(size: 32, weight: .black))
@@ -187,6 +186,20 @@ struct HomeView: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    /// 指标卡标题：当日有更新显示「今日 X」；否则显示「最新 X」并在右侧附灰字月日。
+    private func metricTitle(name: String, latest: HomeViewModel.LatestMetric) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text("\(latest.isToday ? "今日" : "最新")\(name)")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.textSecondary)
+            if !latest.isToday, let date = latest.date {
+                Text(Self.monthDayFormatter.string(from: date))
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.textMuted)
+            }
+        }
     }
 
     // MARK: - 本周小结卡（仅周日展示，置顶；内容暂为模拟）
@@ -252,6 +265,14 @@ struct HomeView: View {
         let f = DateFormatter()
         f.locale = Locale(identifier: "zh_CN")
         f.dateFormat = "M月d日 EEEE"
+        return f
+    }()
+
+    /// 指标卡「最新」态的灰字月日。
+    private static let monthDayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "zh_CN")
+        f.dateFormat = "M月d日"
         return f
     }()
 

@@ -3,7 +3,7 @@
 
 import Foundation
 
-struct SleepSample: Identifiable, Equatable {
+struct SleepSample: Identifiable, Equatable, Codable {
     let id = UUID()
     let date: Date
     let totalMinutes: Int          // 当晚总时长（分）
@@ -16,4 +16,10 @@ struct SleepSample: Identifiable, Equatable {
     var wakeTime: Date? = nil      // 起床时刻（当晚最晚一段睡眠的结束）
 
     var totalHours: Double { Double(totalMinutes) / 60.0 }
+
+    // 快照持久化：id 仅供 SwiftUI Identifiable，无需编码，解码时自动重生。
+    private enum CodingKeys: String, CodingKey {
+        case date, totalMinutes, deepMinutes, coreMinutes, remMinutes
+        case awakeMinutes, efficiency, bedtime, wakeTime
+    }
 }

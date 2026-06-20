@@ -3,7 +3,7 @@
 
 import Foundation
 
-struct WeightStatistics: Equatable {
+struct WeightStatistics: Equatable, Codable {
     /// 最新一次测量。
     var current: Double?
     /// 今年最高 / 最低。

@@ -28,10 +28,10 @@ struct GoalEditSheet: View {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text(String(format: "%.1f", draftWeight))
                         .font(.system(size: 44, weight: .heavy))
-                        .foregroundColor(.brandBlue)
+                        .foregroundColor(.weightGreen)
                     Text("kg")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.brandBlue.opacity(0.7))
+                        .foregroundColor(.weightGreen.opacity(0.7))
                 }
 
                 Stepper(value: $draftWeight, in: 40...150, step: 0.5) {

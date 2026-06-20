@@ -24,14 +24,16 @@ struct HealthApp: App {
     @StateObject private var appState: AppState
 
     init() {
-        let repository: HealthDataRepository
+        let base: HealthDataRepository
         #if targetEnvironment(simulator)
         // 模拟器：纯 Mock 数据源，不触碰真实 HealthKit。
-        repository = MockHealthRepository()
+        base = MockHealthRepository()
         #else
         // 真机：真实 HealthKit；事件走本机持久化（无 mock 种子）。
-        repository = HealthKitRepository(eventRepository: EventRepository())
+        base = HealthKitRepository(eventRepository: EventRepository())
         #endif
+        // 缓存装饰器：启动预热 + 本地快照 + 在途去重，趋势页点开即有、不再转圈。
+        let repository = CachingHealthRepository(base: base)
         _appState = StateObject(wrappedValue: AppState(repository: repository))
     }
 

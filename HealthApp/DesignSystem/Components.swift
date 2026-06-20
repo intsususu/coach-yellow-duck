@@ -115,8 +115,13 @@ struct EventMark: View {
     var body: some View {
         RoundedRectangle(cornerRadius: 2)
             .fill(color)
+            .overlay(
+                RoundedRectangle(cornerRadius: 2)
+                    .stroke(Color.white, lineWidth: 1.5)
+            )
             .frame(width: side, height: side)
             .rotationEffect(.degrees(45))
+            .shadow(color: color.opacity(0.25), radius: 1, y: 0.5)
     }
 }
 

@@ -36,7 +36,10 @@
 		BF0000000000000000000056 /* SleepChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000055 /* SleepChart.swift */; };
 		BF0000000000000000000058 /* ExerciseChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000057 /* ExerciseChart.swift */; };
 		BF000000000000000000005A /* GoalEditSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000059 /* GoalEditSheet.swift */; };
+		BF0000000000000000000080 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000080 /* UserProfile.swift */; };
+		BF0000000000000000000082 /* ProfileSettingsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000082 /* ProfileSettingsViews.swift */; };
 		BF000000000000000000005C /* HealthKitRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE000000000000000000005B /* HealthKitRepository.swift */; };
+		BF0000000000000000000090 /* CachingHealthRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000090 /* CachingHealthRepository.swift */; };
 		BF000000000000000000005E /* ImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE000000000000000000005D /* ImportView.swift */; };
 		BF0000000000000000000062 /* EventEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000061 /* EventEditorView.swift */; };
 		BF0000000000000000000064 /* EventTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000063 /* EventTimelineView.swift */; };
@@ -80,7 +83,10 @@
 		FE0000000000000000000055 /* SleepChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepChart.swift; sourceTree = "<group>"; };
 		FE0000000000000000000057 /* ExerciseChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseChart.swift; sourceTree = "<group>"; };
 		FE0000000000000000000059 /* GoalEditSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoalEditSheet.swift; sourceTree = "<group>"; };
+		FE0000000000000000000080 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		FE0000000000000000000082 /* ProfileSettingsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileSettingsViews.swift; sourceTree = "<group>"; };
 		FE000000000000000000005B /* HealthKitRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitRepository.swift; sourceTree = "<group>"; };
+		FE0000000000000000000090 /* CachingHealthRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachingHealthRepository.swift; sourceTree = "<group>"; };
 		FE000000000000000000005D /* ImportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportView.swift; sourceTree = "<group>"; };
 		FE000000000000000000005F /* HealthApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = HealthApp.entitlements; sourceTree = "<group>"; };
 		FE0000000000000000000061 /* EventEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventEditorView.swift; sourceTree = "<group>"; };
@@ -215,6 +221,8 @@
 			children = (
 				FE0000000000000000000059 /* GoalEditSheet.swift */,
 				FE000000000000000000001B /* ProfileView.swift */,
+				FE0000000000000000000080 /* UserProfile.swift */,
+				FE0000000000000000000082 /* ProfileSettingsViews.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -258,6 +266,7 @@
 				FE0000000000000000000065 /* EventStore.swift */,
 				FE000000000000000000002F /* HealthDataRepository.swift */,
 				FE000000000000000000005B /* HealthKitRepository.swift */,
+				FE0000000000000000000090 /* CachingHealthRepository.swift */,
 				FE0000000000000000000031 /* MockHealthRepository.swift */,
 			);
 			path = Repository;
@@ -385,13 +394,17 @@
 				BF000000000000000000002E /* WeightSample.swift in Sources */,
 				BF0000000000000000000079 /* WeightStatistics.swift in Sources */,
 				BF0000000000000000000030 /* HealthDataRepository.swift in Sources */,
+				BF0000000000000000000090 /* CachingHealthRepository.swift in Sources */,
 				BF0000000000000000000032 /* MockHealthRepository.swift in Sources */,
 				BF0000000000000000000052 /* WeightChart.swift in Sources */,
 				BF0000000000000000000054 /* WeightViewModel.swift in Sources */,
 				BF0000000000000000000056 /* SleepChart.swift in Sources */,
 				BF0000000000000000000058 /* ExerciseChart.swift in Sources */,
 				BF000000000000000000005A /* GoalEditSheet.swift in Sources */,
+				BF0000000000000000000080 /* UserProfile.swift in Sources */,
+				BF0000000000000000000082 /* ProfileSettingsViews.swift in Sources */,
 				BF000000000000000000005C /* HealthKitRepository.swift in Sources */,
+				BF0000000000000000000090 /* CachingHealthRepository.swift in Sources */,
 				BF000000000000000000005E /* ImportView.swift in Sources */,
 				BF0000000000000000000075 /* DailyMetric.swift in Sources */,
 				BF0000000000000000000077 /* MetricSparkline.swift in Sources */,
@@ -527,6 +540,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "加油吖！";
+				INFOPLIST_KEY_CFBundleName = "加油吖！";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "用于读取体重、睡眠、运动与心率数据，在本机生成健康趋势分析。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -558,6 +572,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "加油吖！";
+				INFOPLIST_KEY_CFBundleName = "加油吖！";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "用于读取体重、睡眠、运动与心率数据，在本机生成健康趋势分析。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
