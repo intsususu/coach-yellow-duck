@@ -127,15 +127,12 @@ struct EventEditorView: View {
 
     private var calendar: Calendar { Self.localizedCalendar }
 
-    // 日期区拆成独立 Equatable 子视图：标题/备注输入不再每次按键都重绘内嵌的
-    // UIKit DatePicker，缓解呼出输入法时的卡顿。
     private var dateSection: some View {
         fieldGroup(title: isPeriod ? "起止日期" : "日期") {
             EventDateSection(isPeriod: isPeriod,
                              startDate: $startDate,
                              endDate: $endDate,
                              calendar: calendar)
-                .equatable()
         }
     }
 
@@ -206,21 +203,20 @@ struct EventEditorView: View {
 
 // MARK: - 日期区子视图
 
-/// 独立出来的日期选择区。声明为 `Equatable`，配合 `.equatable()` 让父视图在标题/备注
-/// 等无关状态变化时跳过本区重绘——内嵌的 compact `DatePicker` 桥接 UIKit，重绘代价高，
-/// 频繁重建正是输入法卡顿与（早期版本）日期弹层不消失的诱因。
-private struct EventDateSection: View, Equatable {
+/// 独立出来的日期选择区，避免标题和备注的输入状态干扰 DatePicker。
+private struct EventDateSection: View {
     let isPeriod: Bool
     @Binding var startDate: Date
     @Binding var endDate: Date
     let calendar: Calendar
 
-    // 仅按值比较，忽略 Binding：标题/备注变化时三项不变即跳过重绘。
-    static func == (lhs: EventDateSection, rhs: EventDateSection) -> Bool {
-        lhs.isPeriod == rhs.isPeriod &&
-        lhs.startDate == rhs.startDate &&
-        lhs.endDate == rhs.endDate
-    }
+    private static let slashFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy/MM/dd"
+        return formatter
+    }()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -251,27 +247,66 @@ private struct EventDateSection: View, Equatable {
 
     private func compactDatePicker(_ label: String,
                                    selection: Binding<Date>) -> some View {
-        DatePicker(selection: selection, displayedComponents: .date) {
+        HStack {
             Text(label)
                 .font(.system(size: 14))
                 .foregroundColor(.textSecondary)
+            Spacer()
+            datePickerControl(selection: selection)
         }
-        .datePickerStyle(.compact)
-        .tint(.brandBlue)
         .padding(.vertical, 8)
     }
 
     private func compactDatePicker(_ label: String,
                                    selection: Binding<Date>,
                                    in range: PartialRangeFrom<Date>) -> some View {
-        DatePicker(selection: selection, in: range, displayedComponents: .date) {
+        HStack {
             Text(label)
                 .font(.system(size: 14))
                 .foregroundColor(.textSecondary)
+            Spacer()
+            datePickerControl(selection: selection, in: range)
         }
-        .datePickerStyle(.compact)
-        .tint(.brandBlue)
         .padding(.vertical, 8)
+    }
+
+    private func datePickerControl(selection: Binding<Date>) -> some View {
+        ZStack {
+            formattedDate(selection.wrappedValue)
+            DatePicker("", selection: selection, displayedComponents: .date)
+                .datePickerStyle(.compact)
+                .labelsHidden()
+                .tint(.brandBlue)
+                .opacity(0.02)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("选择日期")
+        .accessibilityValue(Self.slashFormatter.string(from: selection.wrappedValue))
+    }
+
+    private func datePickerControl(selection: Binding<Date>,
+                                   in range: PartialRangeFrom<Date>) -> some View {
+        ZStack {
+            formattedDate(selection.wrappedValue)
+            DatePicker("", selection: selection, in: range, displayedComponents: .date)
+                .datePickerStyle(.compact)
+                .labelsHidden()
+                .tint(.brandBlue)
+                .opacity(0.02)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("选择日期")
+        .accessibilityValue(Self.slashFormatter.string(from: selection.wrappedValue))
+    }
+
+    private func formattedDate(_ date: Date) -> some View {
+        Text(Self.slashFormatter.string(from: date))
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundColor(.textPrimary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.appBg)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private var periodDayCount: Int {
