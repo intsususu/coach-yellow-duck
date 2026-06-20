@@ -46,6 +46,7 @@
 		BF0000000000000000000075 /* DailyMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000074 /* DailyMetric.swift */; };
 		BF0000000000000000000077 /* MetricSparkline.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000076 /* MetricSparkline.swift */; };
 		BF0000000000000000000079 /* WeightStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000078 /* WeightStatistics.swift */; };
+		BF000000000000000000007B /* ExerciseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE000000000000000000007A /* ExerciseViewModel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -56,6 +57,7 @@
 		FE0000000000000000000009 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
 		FE000000000000000000000B /* Toast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Toast.swift; sourceTree = "<group>"; };
 		FE000000000000000000000F /* ExerciseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseView.swift; sourceTree = "<group>"; };
+		FE000000000000000000007A /* ExerciseViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseViewModel.swift; sourceTree = "<group>"; };
 		FE0000000000000000000011 /* RecentEventRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentEventRow.swift; sourceTree = "<group>"; };
 		FE0000000000000000000013 /* WeightSparkline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightSparkline.swift; sourceTree = "<group>"; };
 		FE0000000000000000000015 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
@@ -183,6 +185,7 @@
 			isa = PBXGroup;
 			children = (
 				FE000000000000000000000F /* ExerciseView.swift */,
+				FE000000000000000000007A /* ExerciseViewModel.swift */,
 			);
 			path = Exercise;
 			sourceTree = "<group>";
@@ -364,6 +367,7 @@
 				BF0000000000000000000064 /* EventTimelineView.swift in Sources */,
 				BF0000000000000000000066 /* EventStore.swift in Sources */,
 				BF0000000000000000000010 /* ExerciseView.swift in Sources */,
+				BF000000000000000000007B /* ExerciseViewModel.swift in Sources */,
 				BF0000000000000000000012 /* RecentEventRow.swift in Sources */,
 				BF0000000000000000000014 /* WeightSparkline.swift in Sources */,
 				BF0000000000000000000016 /* HomeView.swift in Sources */,
@@ -522,7 +526,7 @@
 				DEVELOPMENT_TEAM = 64FF893SV4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "獭獭开";
+				INFOPLIST_KEY_CFBundleDisplayName = "加油吖！";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "用于读取体重、睡眠、运动与心率数据，在本机生成健康趋势分析。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -553,7 +557,7 @@
 				DEVELOPMENT_TEAM = 64FF893SV4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "獭獭开";
+				INFOPLIST_KEY_CFBundleDisplayName = "加油吖！";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "用于读取体重、睡眠、运动与心率数据，在本机生成健康趋势分析。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

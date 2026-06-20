@@ -43,9 +43,18 @@ struct HomeView: View {
                     .foregroundColor(.textPrimary)
             }
             Spacer()
-            PillButton(title: "记事件", systemImage: "plus") {
-                appState.presentEventEditor()
+            // 趋势图事件叠加的全局开关：原在各趋势卡内，现统一收到首页控制。
+            Toggle(isOn: $appState.showsEvents) {
+                Text("事件")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.textSecondary)
+                    .padding(.vertical, 6)
+                    .padding(.trailing, 4)
+                    .contentShape(Rectangle())
             }
+            .tint(.brandBlue)
+            .fixedSize()
+            .accessibilityLabel("在趋势图上显示事件")
         }
     }
 

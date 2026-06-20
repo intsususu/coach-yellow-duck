@@ -72,11 +72,14 @@ final class EventRepository: HealthDataRepository {
     func homeRingMetrics() async -> HomeRingMetrics { .empty }
     func sleepDurationTrend() async -> [DailyMetric] { [] }
     func activeEnergyTrend() async -> [DailyMetric] { [] }
+    func activeEnergyDailyTrend() async -> [DailyMetric] { [] }
+    func basalEnergyDailyTrend() async -> [DailyMetric] { [] }
     func weightSeries(range: TimeRange) async -> [WeightSample] { [] }
     func recentWeightRecords(limit: Int) async -> [WeightSample] { [] }
     func weightStatistics() async -> WeightStatistics { WeightStatistics() }
     func sleepSeries(range: TimeRange) async -> [SleepSample] { [] }
     func exerciseSeries(range: TimeRange) async -> [ExerciseSample] { [] }
+    func workoutSessions() async -> [WorkoutSession] { [] }
 
     // MARK: - 事件读写（本机持久化）
     func events() async -> [HealthEvent] { eventStore.load() }

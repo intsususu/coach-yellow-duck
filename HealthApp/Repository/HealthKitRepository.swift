@@ -72,6 +72,54 @@ final class HealthKitRepository: HealthDataRepository {
         }
     }
 
+    func activeEnergyDailyTrend() async -> [DailyMetric] {
+        guard let energyType = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned) else { return [] }
+        let end = Date()
+        let start = calendar.date(byAdding: .month, value: -6, to: end) ?? end
+        let anchor = calendar.startOfDay(for: start)
+        var interval = DateComponents()
+        interval.day = 1
+        do {
+            // 按自然日累计全天活动消耗（与首页 activeEnergyTrend 同口径，跨度拉长到 6 个月）。
+            let buckets = try await statistics(type: energyType,
+                                               options: .cumulativeSum,
+                                               start: start,
+                                               end: end,
+                                               anchor: anchor,
+                                               interval: interval)
+            return buckets.compactMap { bucket in
+                guard let kcal = bucket.statistics.sumQuantity()?.doubleValue(for: .kilocalorie()) else { return nil }
+                return DailyMetric(date: bucket.startDate, value: kcal.rounded())
+            }
+        } catch {
+            return []
+        }
+    }
+
+    func basalEnergyDailyTrend() async -> [DailyMetric] {
+        guard let energyType = HKObjectType.quantityType(forIdentifier: .basalEnergyBurned) else { return [] }
+        let end = Date()
+        let start = calendar.date(byAdding: .month, value: -6, to: end) ?? end
+        let anchor = calendar.startOfDay(for: start)
+        var interval = DateComponents()
+        interval.day = 1
+        do {
+            // 按自然日累计静息（基础代谢）消耗；与活动消耗相加得到含静息代谢的总消耗。
+            let buckets = try await statistics(type: energyType,
+                                               options: .cumulativeSum,
+                                               start: start,
+                                               end: end,
+                                               anchor: anchor,
+                                               interval: interval)
+            return buckets.compactMap { bucket in
+                guard let kcal = bucket.statistics.sumQuantity()?.doubleValue(for: .kilocalorie()) else { return nil }
+                return DailyMetric(date: bucket.startDate, value: kcal.rounded())
+            }
+        } catch {
+            return []
+        }
+    }
+
     func weightSeries(range: TimeRange) async -> [WeightSample] {
         guard let bodyMass = HKObjectType.quantityType(forIdentifier: .bodyMass) else { return [] }
         let end = Date()
@@ -149,7 +197,7 @@ final class HealthKitRepository: HealthDataRepository {
               let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate) else { return [] }
 
         let end = Date()
-        let start = calendar.date(byAdding: .month, value: -6, to: end) ?? end
+        let start = calendar.date(byAdding: .month, value: -23, to: end) ?? end
         let anchor = calendar.date(from: calendar.dateComponents([.year, .month], from: start)) ?? start
         var interval = DateComponents()
         interval.month = 1
@@ -177,10 +225,36 @@ final class HealthKitRepository: HealthDataRepository {
 
             return energy.compactMap { bucket in
                 guard let kcal = bucket.statistics.sumQuantity()?.doubleValue(for: .kilocalorie()) else { return nil }
-                return ExerciseSample(label: formatter.string(from: bucket.startDate),
+                return ExerciseSample(month: bucket.startDate,
+                                      label: formatter.string(from: bucket.startDate),
                                       kcal: kcal,
                                       avgHR: heartByMonth[monthKey(bucket.startDate)] ?? nil,
                                       minutes: nil)
+            }
+        } catch {
+            return []
+        }
+    }
+
+    func workoutSessions() async -> [WorkoutSession] {
+        let end = Date()
+        // 取近 24 个月：供月度消耗「运动」口径回溯；统计卡仍按周期窗口（≤180 天）取近段。
+        let start = calendar.date(byAdding: .month, value: -24, to: end) ?? end
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end)
+        do {
+            let workouts = try await workoutSamples(predicate: predicate)
+            let heartRateType = HKObjectType.quantityType(forIdentifier: .heartRate)
+            return workouts.map { workout in
+                let minutes = Int((workout.duration / 60).rounded())
+                let kcal = workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0
+                let avgHR = heartRateType.flatMap {
+                    workout.statistics(for: $0)?.averageQuantity()?.doubleValue(for: heartRateUnit)
+                }
+                return WorkoutSession(start: workout.startDate,
+                                      type: workoutKind(for: workout.workoutActivityType),
+                                      minutes: minutes,
+                                      kcal: kcal.rounded(),
+                                      avgHR: avgHR.map { $0.rounded() })
             }
         } catch {
             return []
@@ -219,6 +293,8 @@ private extension HealthKitRepository {
         var rem = 0
         var awake = 0
         var unspecified = 0
+        var bedtime: Date?   // 当晚最早一段睡眠的开始时刻
+        var wakeTime: Date?  // 当晚最晚一段睡眠的结束时刻
     }
 
     struct ActivityRingValues {
@@ -236,6 +312,7 @@ private extension HealthKitRepository {
         let identifiers: [HKQuantityTypeIdentifier] = [
             .bodyMass,
             .activeEnergyBurned,
+            .basalEnergyBurned,
             .appleExerciseTime,
             .heartRate,
         ]
@@ -407,6 +484,44 @@ private extension HealthKitRepository {
         }
     }
 
+    /// 按次锻炼查询（HKWorkout，按开始时间升序）。
+    func workoutSamples(predicate: NSPredicate) async throws -> [HKWorkout] {
+        try await withCheckedThrowingContinuation { continuation in
+            let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+            let query = HKSampleQuery(sampleType: .workoutType(),
+                                      predicate: predicate,
+                                      limit: HKObjectQueryNoLimit,
+                                      sortDescriptors: [sort]) { _, samples, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                continuation.resume(returning: samples as? [HKWorkout] ?? [])
+            }
+            healthStore.execute(query)
+        }
+    }
+
+    /// HealthKit 锻炼类型 → 应用内运动类型分桶（占比 / 图标用）。
+    func workoutKind(for type: HKWorkoutActivityType) -> WorkoutKind {
+        switch type {
+        case .running, .trackAndField:
+            return .running
+        case .traditionalStrengthTraining, .functionalStrengthTraining, .coreTraining, .crossTraining:
+            return .strength
+        case .cycling, .handCycling:
+            return .cycling
+        case .swimming, .swimBikeRun, .waterFitness:
+            return .swimming
+        case .walking, .hiking:
+            return .walking
+        case .yoga, .pilates, .flexibility, .mindAndBody:
+            return .yoga
+        default:
+            return .running   // 未细分的有氧统一归「跑步」桶
+        }
+    }
+
     func categorySamples(type: HKCategoryType,
                          predicate: NSPredicate) async throws -> [HKCategorySample] {
         try await withCheckedThrowingContinuation { continuation in
@@ -434,6 +549,7 @@ private extension HealthKitRepository {
             let minutes = max(0, Int(sample.endDate.timeIntervalSince(sample.startDate) / 60))
             var accumulator = nights[night] ?? SleepAccumulator()
 
+            var isAsleep = true
             switch sample.value {
             case HKCategoryValueSleepAnalysis.asleepDeep.rawValue:
                 accumulator.deep += minutes
@@ -443,10 +559,16 @@ private extension HealthKitRepository {
                 accumulator.rem += minutes
             case HKCategoryValueSleepAnalysis.awake.rawValue:
                 accumulator.awake += minutes
+                isAsleep = false
             case HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue:
                 accumulator.unspecified += minutes
             default:
-                break
+                isAsleep = false
+            }
+            // 入睡 / 起床时刻取实际睡着段的最早开始与最晚结束（清醒、在床等不计入）。
+            if isAsleep {
+                accumulator.bedtime = min(accumulator.bedtime ?? sample.startDate, sample.startDate)
+                accumulator.wakeTime = max(accumulator.wakeTime ?? sample.endDate, sample.endDate)
             }
             nights[night] = accumulator
         }
@@ -463,7 +585,9 @@ private extension HealthKitRepository {
                                coreMinutes: value.core + value.unspecified,
                                remMinutes: value.rem,
                                awakeMinutes: value.awake,
-                               efficiency: efficiency)
+                               efficiency: efficiency,
+                               bedtime: value.bedtime,
+                               wakeTime: value.wakeTime)
         }
     }
 

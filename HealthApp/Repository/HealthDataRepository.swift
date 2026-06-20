@@ -12,6 +12,12 @@ protocol HealthDataRepository: AnyObject {
     func sleepDurationTrend() async -> [DailyMetric]
     /// 首页运动卡：最近 30 日每日活动热量（千卡）趋势。
     func activeEnergyTrend() async -> [DailyMetric]
+    /// 运动页趋势卡：最近 6 个月每日「活动消耗热量」（千卡）。
+    /// 与 `activeEnergyTrend`（首页近 30 天）同口径，仅时间跨度更长，供周 / 月 / 6 个月滑动取景。
+    func activeEnergyDailyTrend() async -> [DailyMetric]
+    /// 运动页日均卡：最近 6 个月每日「静息（基础代谢）消耗热量」（千卡）。
+    /// 与活动消耗相加即为 Health 中「含静息代谢的总消耗」。
+    func basalEnergyDailyTrend() async -> [DailyMetric]
     func weightSeries(range: TimeRange) async -> [WeightSample]
     /// 最近 N 条体重测量原始记录（按日期降序）。
     func recentWeightRecords(limit: Int) async -> [WeightSample]
@@ -19,6 +25,9 @@ protocol HealthDataRepository: AnyObject {
     func weightStatistics() async -> WeightStatistics
     func sleepSeries(range: TimeRange) async -> [SleepSample]
     func exerciseSeries(range: TimeRange) async -> [ExerciseSample]
+    /// 运动统计卡 + 月度消耗「运动」口径：最近 24 个月的按次运动记录（含开始时间、类型、时长、消耗）。
+    /// 仅含主动开始的锻炼，无锻炼的日不出现；统计卡按所选周期窗口过滤，月度图按月聚合回溯。
+    func workoutSessions() async -> [WorkoutSession]
     func events() async -> [HealthEvent]
     func saveEvent(_ event: HealthEvent) async
     func deleteEvent(_ event: HealthEvent) async

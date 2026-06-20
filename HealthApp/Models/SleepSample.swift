@@ -12,6 +12,8 @@ struct SleepSample: Identifiable, Equatable {
     var remMinutes: Int? = nil     // REM
     var awakeMinutes: Int? = nil   // 清醒
     var efficiency: Double? = nil  // 效率 0–1
+    var bedtime: Date? = nil       // 入睡时刻（当晚最早一段睡眠的开始）
+    var wakeTime: Date? = nil      // 起床时刻（当晚最晚一段睡眠的结束）
 
     var totalHours: Double { Double(totalMinutes) / 60.0 }
 }

@@ -7,11 +7,16 @@ struct WeightView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel = WeightViewModel()
     @State private var selectedRange: TimeRange = .month
-    @State private var showsEvents = true
+    /// 图表实际渲染的范围；仅在新数据和滚动位置都就绪后更新。
+    @State private var chartRange: TimeRange = .month
+    /// 是否叠加事件：全局开关，由首页顶部控制，各趋势页共用。
+    private var showsEvents: Bool { appState.showsEvents }
     /// 趋势图可视窗口前沿（leading edge）；随手势滑动更新，并驱动右下角事件图例的过滤。
     @State private var scrollPosition = Date()
     /// 在图上点选的事件；非空且事件开关打开时，卡片下方展示其详情。
     @State private var selectedEvent: HealthEvent?
+    /// 点击图例时选中的基础类型；与图上单条事件选中互斥。
+    @State private var selectedLegendType: EventType?
 
     var body: some View {
         NavigationStack {
@@ -27,17 +32,33 @@ struct WeightView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .animation(.easeInOut(duration: 0.2), value: selectedEvent)
+                .animation(.easeInOut(duration: 0.2), value: selectedLegendType)
             }
             .background(Color.appBg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .task { await viewModel.loadInitialData(from: appState.repository) }
             .task(id: selectedRange) {
                 selectedEvent = nil
-                await viewModel.loadSeries(for: selectedRange, from: appState.repository)
-                resetScrollToLatest()
+                selectedLegendType = nil
+                let requestedRange = selectedRange
+                let didCommit = await viewModel.loadSeries(for: requestedRange,
+                                                           from: appState.repository)
+                guard didCommit, !Task.isCancelled, selectedRange == requestedRange else { return }
+                var transaction = Transaction()
+                transaction.animation = nil
+                withTransaction(transaction) {
+                    resetScrollToLatest(for: requestedRange)
+                    chartRange = requestedRange
+                }
             }
             .onChange(of: showsEvents) { isOn in
-                if !isOn { selectedEvent = nil }
+                if !isOn {
+                    selectedEvent = nil
+                    selectedLegendType = nil
+                }
+            }
+            .onChange(of: selectedEvent) { event in
+                if event != nil { selectedLegendType = nil }
             }
         }
     }
@@ -52,17 +73,17 @@ struct WeightView: View {
         TrendChartCard(title: "体重趋势",
                        accent: .brandBlue,
                        background: .weightCardBg,
-                       showsEvents: $showsEvents,
                        isLoading: viewModel.isLoading,
                        isEmpty: viewModel.samples.isEmpty,
                        emptyText: "暂无体重数据") {
             WeightChart(samples: viewModel.samples,
                         events: appState.events,
                         showsEvents: showsEvents,
-                        range: selectedRange,
+                        range: chartRange,
                         scrollPosition: $scrollPosition,
                         selectedEvent: $selectedEvent)
-                .animation(.easeInOut(duration: 0.25), value: selectedRange)
+                // 每个范围使用独立 Charts 实例，不沿用上一范围的坐标轴和滚动内部状态。
+                .id(chartRange)
                 .animation(.easeInOut(duration: 0.2), value: showsEvents)
         } legend: {
             HStack(spacing: 14) {
@@ -91,15 +112,25 @@ struct WeightView: View {
         if !types.isEmpty {
             HStack(spacing: 9) {
                 ForEach(types, id: \.self) { type in
-                    HStack(spacing: 3) {
-                        RoundedRectangle(cornerRadius: 1)
-                            .fill(type.color)
-                            .frame(width: 7, height: 7)
-                            .rotationEffect(.degrees(45))
-                        Text(legendTitle(for: type))
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.textSecondary)
+                    Button {
+                        selectLegendEvent(of: type)
+                    } label: {
+                        HStack(spacing: 3) {
+                            RoundedRectangle(cornerRadius: 1)
+                                .fill(type.color)
+                                .frame(width: 7, height: 7)
+                                .rotationEffect(.degrees(45))
+                            Text(type.label)
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(.textSecondary)
+                        }
+                        .padding(.horizontal, 4)
+                        .frame(height: TrendCardSpec.legendHeight)
+                        .background(isLegendHighlighted(type) ? type.color.opacity(0.12) : .clear)
+                        .clipShape(Capsule())
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(selectedLegendType == type ? "收起\(type.label)事件" : "查看\(type.label)事件")
                 }
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -108,79 +139,118 @@ struct WeightView: View {
 
     /// 仅返回当前可视窗口内出现过的事件类型（排除「其他」），按枚举顺序排列。
     private var windowEventTypes: [EventType] {
-        let window = visibleWindow
-        let present = Set(
-            appState.events
-                .filter { event in
-                    let end = event.endDate ?? event.startDate
-                    return event.startDate <= window.upperBound && end >= window.lowerBound
-                }
-                .map(\.type)
-        ).subtracting([.other])
+        let present = Set(windowEvents.map(\.type))
         return EventType.allCases.filter { present.contains($0) }
+    }
+
+    private var windowEvents: [HealthEvent] {
+        let window = visibleWindow
+        return appState.events.filter { event in
+            guard event.type != .other else { return false }
+            let end = event.endDate ?? event.startDate
+            return event.startDate <= window.upperBound && end >= window.lowerBound
+        }
+    }
+
+    private func selectLegendEvent(of type: EventType) {
+        selectedEvent = nil
+        selectedLegendType = selectedLegendType == type ? nil : type
+    }
+
+    private func isLegendHighlighted(_ type: EventType) -> Bool {
+        selectedLegendType == type || (selectedLegendType == nil && selectedEvent?.type == type)
+    }
+
+    private var detailEvents: [HealthEvent] {
+        if let selectedLegendType {
+            return windowEvents
+                .filter { $0.type == selectedLegendType }
+                .sorted { $0.startDate > $1.startDate }
+        }
+        return selectedEvent.map { [$0] } ?? []
     }
 
     /// 当前趋势图可视窗口区间。「全部」无固定窗口，返回全量事件区间。
     private var visibleWindow: ClosedRange<Date> {
-        guard let seconds = selectedRange.visibleDomainSeconds else {
+        guard let seconds = chartRange.visibleDomainSeconds else {
             return Date.distantPast...Date.distantFuture
         }
         return scrollPosition...scrollPosition.addingTimeInterval(seconds)
     }
 
     /// 切换时间范围或重载数据后，把窗口对齐到最新一段（右端贴齐最后样本）。
-    private func resetScrollToLatest() {
+    private func resetScrollToLatest(for range: TimeRange) {
         guard let last = viewModel.samples.map(\.date).max(),
-              let seconds = selectedRange.visibleDomainSeconds else { return }
+              let seconds = range.visibleDomainSeconds else { return }
         // 右端留出与 WeightChart 同比例的留白，最后一个圆点不再贴边被裁。
         scrollPosition = last.addingTimeInterval(seconds * WeightChart.trailingPadFactor - seconds)
     }
 
-    private func legendTitle(for type: EventType) -> String {
-        switch type {
-        case .illness, .travel: return "\(type.label)(段)"
-        default: return type.label
-        }
-    }
-
-    /// 事件详情：仅当事件开关打开、且在图上点选了某个事件时展示。
+    /// 点图上事件展示单条；点图例展示当前窗口内该基础类型的全部事件。
     @ViewBuilder
     private var eventDetailCard: some View {
-        if showsEvents, let event = selectedEvent {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: event.type.sfSymbol)
-                    .foregroundColor(event.type.color)
-                    .padding(.top, 1)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("\(Self.eventDateText(for: event)) · \(event.title)")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.textPrimary)
-                    if !event.note.isEmpty {
-                        Text(event.note)
-                            .font(.system(size: 12))
-                            .foregroundColor(.textSecondary)
+        if showsEvents, let first = detailEvents.first {
+            VStack(spacing: 0) {
+                HStack {
+                    Text(selectedLegendType.map { "\($0.label)事件 · \(detailEvents.count) 条" } ?? "事件详情")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(first.type.color)
+                    Spacer()
+                    Button { clearEventSelection() } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(first.type.color.opacity(0.5))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.bottom, 2)
+
+                ForEach(Array(detailEvents.enumerated()), id: \.element.id) { index, event in
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: event.type.sfSymbol)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(event.type.color)
+                            .frame(width: 38, height: 38)
+                            .background(Circle().fill(event.type.color.opacity(0.16)))
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("\(Self.eventDateText(for: event)) · \(event.title)")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.textPrimary)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                            if !event.note.isEmpty {
+                                Text(event.note)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.textSecondary)
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 10)
+                    if index < detailEvents.count - 1 {
+                        Divider()
+                            .background(Color.hairline)
+                            .padding(.leading, 48)
                     }
                 }
-                Spacer(minLength: 0)
-                Button {
-                    selectedEvent = nil
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
-                        .foregroundColor(event.type.color.opacity(0.45))
-                }
-                .buttonStyle(.plain)
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(event.type.backgroundColor)
+            .background(first.type.backgroundColor)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(event.type.color.opacity(0.22), lineWidth: 1)
+                    .stroke(first.type.color.opacity(0.22), lineWidth: 1)
             )
             .transition(.opacity.combined(with: .move(edge: .top)))
         }
+    }
+
+    private func clearEventSelection() {
+        selectedEvent = nil
+        selectedLegendType = nil
     }
 
     private var statisticsCard: some View {

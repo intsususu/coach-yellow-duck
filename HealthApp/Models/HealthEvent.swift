@@ -55,6 +55,11 @@ enum EventType: String, CaseIterable, Codable {
         self == .drink || self == .travel
     }
 
+    /// 是否会直接关联运动趋势：伤病停训、出行打乱训练计划。
+    var isExerciseRelated: Bool {
+        self == .illness || self == .travel
+    }
+
     // MARK: - Codable（含旧数据迁移）
 
     /// 兼容历史本机数据：旧版「出差」曾被错误存为 `injury`，现统一并入「出行」(travel)；

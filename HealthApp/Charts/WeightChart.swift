@@ -42,6 +42,13 @@ struct WeightChart: View {
 
     static let trailingPadFactor = 0.04
 
+    /// 可视跨度达 6 个月时，时间段事件也压缩成聚合趋势线上的点。
+    private var usesCondensedEventMarkers: Bool {
+        let sixMonths = 180.0 * 86_400
+        if let seconds = range.visibleDomainSeconds { return seconds >= sixMonths }
+        return visibleWindow.upperBound.timeIntervalSince(visibleWindow.lowerBound) >= sixMonths
+    }
+
     private var visibleEvents: [HealthEvent] {
         guard let first = sortedSamples.first?.date, let last = sortedSamples.last?.date else { return [] }
         return events.filter { event in
@@ -66,7 +73,7 @@ struct WeightChart: View {
         let domain = yDomain
         return scrollable(
             Chart {
-                if showsEvents {
+                if showsEvents, !usesCondensedEventMarkers {
                     ForEach(visibleEvents.filter(\.isPeriod)) { event in
                         RectangleMark(
                             xStart: .value("事件开始", event.startDate),
@@ -74,7 +81,17 @@ struct WeightChart: View {
                             yStart: .value("下界", domain.lowerBound),
                             yEnd: .value("上界", domain.upperBound)
                         )
-                        .foregroundStyle(event.type.backgroundColor.opacity(0.7))
+                        .foregroundStyle(event.type.color.opacity(0.11))
+
+                        RuleMark(x: .value("事件开始边界", event.startDate))
+                            .foregroundStyle(event.type.color.opacity(0.55))
+                            .lineStyle(eventBoundaryStyle)
+
+                        if let endDate = event.endDate {
+                            RuleMark(x: .value("事件结束边界", endDate))
+                                .foregroundStyle(event.type.color.opacity(0.55))
+                                .lineStyle(eventBoundaryStyle)
+                        }
                     }
                 }
 
@@ -113,19 +130,14 @@ struct WeightChart: View {
                 }
 
                 if showsEvents {
-                    ForEach(visibleEvents.filter { !$0.isPeriod }) { event in
+                    ForEach(markerEvents) { event in
+                        let markerDate = eventMarkerDate(event)
                         PointMark(
-                            x: .value("事件日期", event.startDate),
-                            y: .value("事件体重", nearestWeight(to: event.startDate))
+                            x: .value("事件日期", markerDate),
+                            y: .value("事件体重", weightOnTrend(at: markerDate))
                         )
                         .foregroundStyle(event.type.color)
                         .symbol { EventMark(color: event.type.color) }
-                    }
-
-                    if let selected = selectedEvent {
-                        RuleMark(x: .value("选中事件", selected.startDate))
-                            .foregroundStyle(selected.type.color.opacity(0.55))
-                            .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
                     }
                 }
             }
@@ -165,19 +177,34 @@ struct WeightChart: View {
         }
     }
 
+    private var eventBoundaryStyle: StrokeStyle {
+        StrokeStyle(lineWidth: 1.5, dash: [4, 3])
+    }
+
+    private var markerEvents: [HealthEvent] {
+        visibleEvents.filter { usesCondensedEventMarkers || !$0.isPeriod }
+    }
+
+    /// 长跨度下以时间段中点作为代表日期；保留真实日期，避免多个事件吸附到同一月度点后重叠。
+    private func eventMarkerDate(_ event: HealthEvent) -> Date {
+        let end = event.endDate ?? event.startDate
+        return event.startDate.addingTimeInterval(end.timeIntervalSince(event.startDate) / 2)
+    }
+
     /// 把点选日期映射到事件：优先命中时间段色带，其次就近命中单日事件。
     private func eventHit(at date: Date) -> HealthEvent? {
-        if let period = visibleEvents.first(where: { event in
+        if !usesCondensedEventMarkers, let period = visibleEvents.first(where: { event in
             guard let end = event.endDate else { return false }
             return date >= event.startDate && date <= end
         }) {
             return period
         }
-        let tolerance = (range.visibleDomainSeconds ?? 7 * 86_400) * 0.12
-        let nearest = visibleEvents
-            .filter { !$0.isPeriod }
-            .min { abs($0.startDate.timeIntervalSince(date)) < abs($1.startDate.timeIntervalSince(date)) }
-        if let nearest, abs(nearest.startDate.timeIntervalSince(date)) <= tolerance {
+        let span = range.visibleDomainSeconds ?? visibleWindow.upperBound.timeIntervalSince(visibleWindow.lowerBound)
+        let tolerance = span * (usesCondensedEventMarkers ? 0.04 : 0.12)
+        let nearest = markerEvents.min {
+            abs(eventMarkerDate($0).timeIntervalSince(date)) < abs(eventMarkerDate($1).timeIntervalSince(date))
+        }
+        if let nearest, abs(eventMarkerDate(nearest).timeIntervalSince(date)) <= tolerance {
             return nearest
         }
         return nil
@@ -205,10 +232,22 @@ struct WeightChart: View {
         }
     }
 
-    private func nearestWeight(to date: Date) -> Double {
-        sortedSamples.min {
-            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
-        }?.kg ?? yDomain.upperBound
+    /// 在日期两侧的趋势样本间做线性插值，让长跨度事件点贴近对应曲线且不改变横坐标。
+    private func weightOnTrend(at date: Date) -> Double {
+        guard let first = sortedSamples.first, let last = sortedSamples.last else {
+            return yDomain.upperBound
+        }
+        if date <= first.date { return first.kg }
+        if date >= last.date { return last.kg }
+        guard let upperIndex = sortedSamples.firstIndex(where: { $0.date >= date }), upperIndex > 0 else {
+            return first.kg
+        }
+        let lower = sortedSamples[upperIndex - 1]
+        let upper = sortedSamples[upperIndex]
+        let span = upper.date.timeIntervalSince(lower.date)
+        guard span > 0 else { return upper.kg }
+        let progress = date.timeIntervalSince(lower.date) / span
+        return lower.kg + (upper.kg - lower.kg) * progress
     }
 
     private func axisLabel(for date: Date) -> String {

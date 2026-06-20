@@ -1,7 +1,7 @@
 // SleepChart.swift
-// 睡眠趋势图：
-//   · 周 / 月 —— 每晚「深度 / 核心 / 快速眼动 / 清醒」四阶段堆积面积图，固定窗口横向滑动；
-//   · 6 个月 —— 以周平均睡眠时长为单位的趋势折线（参考首页主题色样式）。
+// 睡眠质量趋势图：
+//   · 默认 —— 周 / 月显示逐晚质量分，6 个月显示周均质量分；
+//   · 睡眠阶段 —— 周 / 月显示「深度 / 核心 / 快速眼动 / 清醒」四阶段堆积面积图。
 // 叠加事件：时间段色带、单日事件菱形，点选后常驻显示详情（与 WeightChart 一致）。
 
 import Charts
@@ -36,8 +36,9 @@ enum SleepRange: String, CaseIterable, Identifiable {
     /// 仅分页的周 / 月需要；6 个月不分页，靠 plotDimension 内边距即可。
     var edgePaddingSeconds: TimeInterval {
         switch self {
-        case .week:      return 0.4 * 86_400
-        case .month:     return 1.3 * 86_400
+        // 右侧余量缩小为原来约一半，仍保留轴标签与曲线的防裁切空间。
+        case .week:      return 0.2 * 86_400
+        case .month:     return 0.65 * 86_400
         case .sixMonths: return 0
         }
     }
@@ -58,31 +59,91 @@ enum SleepRange: String, CaseIterable, Identifiable {
 /// 供统一趋势卡的时间过滤按钮复用。
 extension SleepRange: TrendRange {}
 
+enum SleepChartMode {
+    case quality
+    case stages
+}
+
+struct SleepQualityScore: Equatable {
+    let date: Date
+    let score: Double
+    let durationScore: Double
+    let consistencyScore: Double
+    let interruptionsScore: Double
+    let totalMinutes: Int
+    let awakeMinutes: Int
+    let bedtimeStandardDeviation: Double?
+}
+
+enum SleepQualityCalculator {
+    static func scores(for samples: [SleepSample]) -> [SleepQualityScore] {
+        let sorted = samples.sorted { $0.date < $1.date }
+        return sorted.enumerated().map { index, sample in
+            let duration = clamp(84 * Double(sample.totalMinutes) / 480 - 34, lower: 0, upper: 50)
+            let interruptions = clamp(24 - 0.4 * Double(sample.awakeMinutes ?? 0), lower: 0, upper: 20)
+            let consistency = consistencyResult(in: sorted, endingAt: index)
+            let total = clamp(duration + interruptions + consistency.score, lower: 50, upper: 100)
+            return SleepQualityScore(date: sample.date,
+                                     score: total.rounded(),
+                                     durationScore: duration,
+                                     consistencyScore: consistency.score,
+                                     interruptionsScore: interruptions,
+                                     totalMinutes: sample.totalMinutes,
+                                     awakeMinutes: sample.awakeMinutes ?? 0,
+                                     bedtimeStandardDeviation: consistency.standardDeviation)
+        }
+    }
+
+    private static func consistencyResult(in samples: [SleepSample], endingAt index: Int)
+        -> (score: Double, standardDeviation: Double?) {
+        let start = max(0, index - 13)
+        let minutes = samples[start...index].compactMap { sample in
+            sample.bedtime.map(minutesFromNoon)
+        }
+        guard minutes.count >= 2 else { return (28, nil) }
+        let mean = minutes.reduce(0, +) / Double(minutes.count)
+        let variance = minutes.map { pow($0 - mean, 2) }.reduce(0, +) / Double(minutes.count)
+        let standardDeviation = sqrt(variance)
+        let score = clamp(30 * (1 - (standardDeviation - 15) / 75), lower: 0, upper: 30)
+        return (score, standardDeviation)
+    }
+
+    private static func clamp(_ value: Double, lower: Double, upper: Double) -> Double {
+        min(max(value, lower), upper)
+    }
+
+    private static func minutesFromNoon(_ date: Date) -> Double {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+        let minutes = Double((components.hour ?? 0) * 60 + (components.minute ?? 0))
+        return (minutes - 720 + 1440).truncatingRemainder(dividingBy: 1440)
+    }
+}
+
 struct SleepChart: View {
     /// 周 / 月堆积图数据源（日级，含阶段分解）。
     let dailySamples: [SleepSample]
     /// 6 个月趋势数据源（每点为一周平均睡眠时长，单位小时）。
     let weeklyAverages: [DailyMetric]
+    /// 页面加载时预先计算一次，避免周 / 月横滑过程中重复跑评分公式。
+    let qualityScores: [SleepQualityScore]
     let events: [HealthEvent]
     let showsEvents: Bool
     let range: SleepRange
+    let mode: SleepChartMode
     /// 可视窗口前沿；随手势更新，并驱动外部事件图例过滤。
     @Binding var scrollPosition: Date
-    /// 在图上点选的事件（点击事件区域命中）。
-    @Binding var selectedEvent: HealthEvent?
-
-    @State private var selectedDate: Date?
 
     var body: some View {
         scrollable(
             Group {
-                if range.isWeeklyAverage {
+                if mode == .quality {
+                    qualityChart
+                } else if range.isWeeklyAverage {
                     weeklyChart
                 } else {
                     stackedChart
                 }
             }
-            .chartXSelection(value: $selectedDate)
             .chartXAxis {
                 AxisMarks(values: axisStride) { value in
                     AxisGridLine().foregroundStyle(Color.hairline)
@@ -95,12 +156,70 @@ struct SleepChart: View {
                     }
                 }
             }
-            .accessibilityLabel(range.isWeeklyAverage ? "周平均睡眠时长趋势" : "每晚睡眠阶段堆积图")
+            .accessibilityLabel(accessibilityLabel)
         )
-        .onChange(of: selectedDate) { _, newDate in
-            // 命中事件即选中并常驻；手势结束或点空白都不清空，只在关闭按钮/关掉开关时隐藏。
-            guard showsEvents, let date = newDate, let hit = eventHit(at: date) else { return }
-            selectedEvent = hit
+    }
+
+    private var accessibilityLabel: String {
+        if mode == .quality {
+            return range.isWeeklyAverage ? "每周平均睡眠质量分趋势" : "每晚睡眠质量分趋势"
+        }
+        return range.isWeeklyAverage ? "周平均睡眠时长趋势" : "每晚睡眠阶段堆积图"
+    }
+
+    // MARK: - 默认：睡眠质量分趋势
+
+    private var qualityChart: some View {
+        // 睡眠质量分通常集中在 50–100；顶部额外留 5 分安全区，避免事件菱形被裁切。
+        let domain = 50.0...105.0
+        return Chart {
+            eventBands(domain: domain)
+
+            ForEach(renderedQualityPoints) { point in
+                AreaMark(
+                    x: .value("日期", point.date),
+                    yStart: .value("基线", domain.lowerBound),
+                    yEnd: .value("睡眠质量分", point.value)
+                )
+                .foregroundStyle(
+                    LinearGradient(colors: [.sleepIndigo.opacity(0.22), .sleepIndigo.opacity(0.01)],
+                                   startPoint: .top, endPoint: .bottom)
+                )
+                .interpolationMethod(.catmullRom)
+
+                LineMark(
+                    x: .value("日期", point.date),
+                    y: .value("睡眠质量分", point.value)
+                )
+                .foregroundStyle(Color.sleepIndigo)
+                .lineStyle(StrokeStyle(lineWidth: 2.6, lineCap: .round, lineJoin: .round))
+                .interpolationMethod(.catmullRom)
+            }
+
+            if let last = qualityPoints.last, visibleWindow.contains(last.date) {
+                PointMark(x: .value("日期", last.date), y: .value("睡眠质量分", last.value))
+                    .foregroundStyle(Color.sleepIndigo)
+                    .symbolSize(48)
+            }
+
+            eventMarkers(domain: domain, yFor: nearestQualityScore)
+        }
+        .chartLegend(.hidden)
+        .chartXScale(domain: qualityXDomain, range: .plotDimension(padding: range.isWeeklyAverage ? 12 : 0))
+        .chartYScale(domain: domain, range: .plotDimension(padding: 0))
+        .chartYAxis { qualityAxis }
+    }
+
+    private var qualityAxis: some AxisContent {
+        AxisMarks(position: .leading, values: [50, 60, 70, 80, 90, 100]) { value in
+            AxisGridLine().foregroundStyle(Color.hairline)
+            AxisValueLabel {
+                if let score = value.as(Int.self) {
+                    Text("\(score)")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(.textMuted)
+                }
+            }
         }
     }
 
@@ -135,7 +254,8 @@ struct SleepChart: View {
                 .interpolationMethod(.catmullRom)
             }
 
-            eventMarkers(domain: domain, yFor: { _ in domain.upperBound * 0.94 })
+            // 单日事件贴在四阶段累计的最上沿（清醒边界），不再悬浮于图外。
+            eventMarkers(domain: domain, yFor: nearestStackedHours)
         }
         .chartLegend(.hidden)
         // 显式锁定绘图区为「零内边距」：否则 Swift Charts 会因事件菱形符号自动预留像素内边距，
@@ -192,7 +312,7 @@ struct SleepChart: View {
 
     @ChartContentBuilder
     private func eventBands(domain: ClosedRange<Double>) -> some ChartContent {
-        if showsEvents {
+        if showsEvents, !range.isWeeklyAverage {
             ForEach(visibleEvents.filter(\.isPeriod)) { event in
                 RectangleMark(
                     xStart: .value("事件开始", event.startDate),
@@ -200,7 +320,19 @@ struct SleepChart: View {
                     yStart: .value("下界", domain.lowerBound),
                     yEnd: .value("上界", domain.upperBound)
                 )
-                .foregroundStyle(event.type.backgroundColor.opacity(0.7))
+                // 主色低透明度比浅色 bg token 更能与睡眠卡背景区分，
+                // 避免「图上看不到色带，底部却有图例」的错觉。
+                .foregroundStyle(event.type.color.opacity(0.11))
+
+                RuleMark(x: .value("事件开始边界", event.startDate))
+                    .foregroundStyle(event.type.color.opacity(0.55))
+                    .lineStyle(eventBoundaryStyle)
+
+                if let endDate = event.endDate {
+                    RuleMark(x: .value("事件结束边界", endDate))
+                        .foregroundStyle(event.type.color.opacity(0.55))
+                        .lineStyle(eventBoundaryStyle)
+                }
             }
         }
     }
@@ -208,21 +340,39 @@ struct SleepChart: View {
     @ChartContentBuilder
     private func eventMarkers(domain: ClosedRange<Double>, yFor: @escaping (Date) -> Double) -> some ChartContent {
         if showsEvents {
-            ForEach(visibleEvents.filter { !$0.isPeriod }) { event in
+            ForEach(markerEvents) { event in
+                let markerDate = eventMarkerDate(event)
                 PointMark(
-                    x: .value("事件日期", event.startDate),
-                    y: .value("事件位置", yFor(event.startDate))
+                    x: .value("事件日期", markerDate),
+                    y: .value("事件位置", yFor(markerDate))
                 )
                 .foregroundStyle(event.type.color)
                 .symbol { EventMark(color: event.type.color) }
             }
-
-            if let selected = selectedEvent {
-                RuleMark(x: .value("选中事件", selected.startDate))
-                    .foregroundStyle(selected.type.color.opacity(0.55))
-                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
-            }
         }
+    }
+
+    private var eventBoundaryStyle: StrokeStyle {
+        StrokeStyle(lineWidth: 1.5, dash: [4, 3])
+    }
+
+    private var markerEvents: [HealthEvent] {
+        visibleEvents.filter { range.isWeeklyAverage || !$0.isPeriod }
+    }
+
+    /// 6 个月周均视图中，时间段用区间中点表示，并吸附到最近的周均曲线点。
+    private func eventMarkerDate(_ event: HealthEvent) -> Date {
+        guard range.isWeeklyAverage else { return event.startDate }
+        let end = event.endDate ?? event.startDate
+        let reference = event.startDate.addingTimeInterval(end.timeIntervalSince(event.startDate) / 2)
+        if mode == .quality {
+            return qualityPoints.min {
+                abs($0.date.timeIntervalSince(reference)) < abs($1.date.timeIntervalSince(reference))
+            }?.date ?? reference
+        }
+        return sortedWeekly.min {
+            abs($0.date.timeIntervalSince(reference)) < abs($1.date.timeIntervalSince(reference))
+        }?.date ?? reference
     }
 
     /// `decimals`：堆积图域跨度大用整点（0/2/4/6/8h），周均趋势域窄用一位小数避免取整重复。
@@ -249,9 +399,37 @@ struct SleepChart: View {
         weeklyAverages.sorted { $0.date < $1.date }
     }
 
+    /// 周 / 月为逐晚质量分；6 个月聚合成周均分，避免 180 个点挤在同一屏。
+    private var qualityPoints: [QualityPoint] {
+        let nightly = qualityScores.map { QualityPoint(date: $0.date, value: $0.score) }
+        guard range.isWeeklyAverage else { return nightly }
+
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: nightly) { point in
+            calendar.dateInterval(of: .weekOfYear, for: point.date)?.start ?? point.date
+        }
+        return grouped.map { weekStart, points in
+            QualityPoint(date: weekStart,
+                         value: points.map(\.value).reduce(0, +) / Double(points.count))
+        }
+        .sorted { $0.date < $1.date }
+        .suffix(26)
+        .map { QualityPoint(date: $0.date, value: $0.value.rounded()) }
+    }
+
+    /// 周 / 月仅绘制当前窗口及少量缓冲点，保持横滑流畅；6 个月本身只有 26 个周均点。
+    private var renderedQualityPoints: [QualityPoint] {
+        guard range != .sixMonths else { return qualityPoints }
+        let bufferDays = range == .week ? 7.0 : 15.0
+        let buffer = bufferDays * 86_400
+        let lower = visibleWindow.lowerBound.addingTimeInterval(-buffer)
+        let upper = visibleWindow.upperBound.addingTimeInterval(buffer)
+        return qualityPoints.filter { $0.date >= lower && $0.date <= upper }
+    }
+
     /// 堆积带：每晚四阶段自下而上的累计区间（小时）+ 配色。
     private var stageBands: [StageBand] {
-        sortedSamples.flatMap { sample -> [StageBand] in
+        renderedStageSamples.flatMap { sample -> [StageBand] in
             let segments: [(String, Double, Color)] = [
                 ("深度睡眠", minutes(sample.deepMinutes), .sleepDeep),
                 ("核心睡眠", minutes(sample.coreMinutes), .sleepCore),
@@ -267,6 +445,16 @@ struct SleepChart: View {
         }
     }
 
+    /// 只构建当前可视窗口及两侧缓冲区的阶段 Marks；完整日期域仍保留，因此历史横滑不受影响。
+    private var renderedStageSamples: [SleepSample] {
+        guard range != .sixMonths else { return [] }
+        let bufferDays = range == .week ? 7.0 : 15.0
+        let buffer = bufferDays * 86_400
+        let lower = visibleWindow.lowerBound.addingTimeInterval(-buffer)
+        let upper = visibleWindow.upperBound.addingTimeInterval(buffer)
+        return sortedSamples.filter { $0.date >= lower && $0.date <= upper }
+    }
+
     private func minutes(_ value: Int?) -> Double { Double(value ?? 0) / 60.0 }
 
     /// 堆积图横轴域：数据首尾各外扩 edgePadding，留出空白，使首尾日期刻度不被裁切。
@@ -279,10 +467,18 @@ struct SleepChart: View {
         return first.addingTimeInterval(-pad)...last.addingTimeInterval(pad)
     }
 
+    private var qualityXDomain: ClosedRange<Date> {
+        let dates = qualityPoints.map(\.date)
+        let first = dates.first ?? Date()
+        let last = max(first, dates.last ?? first)
+        let pad = range.edgePaddingSeconds
+        return first.addingTimeInterval(-pad)...last.addingTimeInterval(pad)
+    }
+
     /// 当前可视窗口区间；6 个月（无窗口）覆盖整段。
     private var visibleWindow: ClosedRange<Date> {
         guard let seconds = range.visibleDomainSeconds else {
-            let dates = range.isWeeklyAverage ? sortedWeekly.map(\.date) : sortedSamples.map(\.date)
+            let dates = plottedDates
             let first = dates.first ?? Date()
             return first...max(first, dates.last ?? first)
         }
@@ -317,7 +513,7 @@ struct SleepChart: View {
 
     /// 落入当前数据时间跨度的事件。
     private var visibleEvents: [HealthEvent] {
-        let dates = range.isWeeklyAverage ? sortedWeekly.map(\.date) : sortedSamples.map(\.date)
+        let dates = plottedDates
         guard let first = dates.first, let last = dates.last else { return [] }
         return events.filter { event in
             guard event.type.isSleepRelated else { return false }
@@ -332,23 +528,21 @@ struct SleepChart: View {
         }?.value ?? weeklyYDomain.upperBound
     }
 
-    /// 点选日期映射到事件：优先命中时间段色带，其次就近命中单日事件。
-    private func eventHit(at date: Date) -> HealthEvent? {
-        if let period = visibleEvents.first(where: { event in
-            guard let end = event.endDate else { return false }
-            return date >= event.startDate && date <= end
-        }) {
-            return period
-        }
-        let span = range.visibleDomainSeconds ?? 26 * 7 * 86_400
-        let tolerance = span * 0.12
-        let nearest = visibleEvents
-            .filter { !$0.isPeriod }
-            .min { abs($0.startDate.timeIntervalSince(date)) < abs($1.startDate.timeIntervalSince(date)) }
-        if let nearest, abs(nearest.startDate.timeIntervalSince(date)) <= tolerance {
-            return nearest
-        }
-        return nil
+    private func nearestQualityScore(to date: Date) -> Double {
+        qualityPoints.min {
+            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
+        }?.value ?? 50
+    }
+
+    private var plottedDates: [Date] {
+        if mode == .quality { return qualityPoints.map(\.date) }
+        return range.isWeeklyAverage ? sortedWeekly.map(\.date) : sortedSamples.map(\.date)
+    }
+
+    private func nearestStackedHours(to date: Date) -> Double {
+        sortedSamples.min {
+            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
+        }.map(stackedHours) ?? stackedYDomain.upperBound
     }
 
     // MARK: - 滚动与坐标轴
@@ -405,4 +599,12 @@ struct SleepChart: View {
                            startPoint: .top, endPoint: .bottom)
         }
     }
+
+    /// 日期即稳定标识，避免横滑时因随机 UUID 让 Swift Charts 重建整条质量曲线。
+    private struct QualityPoint: Identifiable {
+        let date: Date
+        let value: Double
+        var id: Date { date }
+    }
+
 }

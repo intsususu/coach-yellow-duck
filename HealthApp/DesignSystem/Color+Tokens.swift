@@ -55,11 +55,19 @@ extension Color {
     // MARK: - 事件类型色板（PRD §4.2）
     static let eventIllness   = Color(hex: "#ef4444")  // 伤病：红
     static let eventDrink     = Color(hex: "#7c3aed")  // 饮酒：紫
-    static let eventTravel    = Color(hex: "#3b82f6")  // 出行：蓝
+    static let eventTravel    = Color(hex: "#a16207")  // 出行：棕
     static let eventOther     = Color(hex: "#64748b")  // 其他：灰
 
     static let eventIllnessBg = Color(hex: "#fdecec")
     static let eventDrinkBg   = Color(hex: "#f3eefc")
-    static let eventTravelBg  = Color(hex: "#eaf1fe")
+    static let eventTravelBg  = Color(hex: "#f8f0e3")
     static let eventOtherBg   = Color(hex: "#f1f3f5")
+
+    // MARK: - 运动类型色板（运动统计「类型占比」用）
+    static let workoutRunning  = Color(hex: "#ea580c")  // 跑步：橙（运动主色）
+    static let workoutStrength = Color(hex: "#2563eb")  // 力量：蓝
+    static let workoutCycling  = Color(hex: "#16a34a")  // 骑行：绿
+    static let workoutSwimming = Color(hex: "#0891b2")  // 游泳：青
+    static let workoutWalking  = Color(hex: "#f59e0b")  // 步行：琥珀
+    static let workoutYoga     = Color(hex: "#7c3aed")  // 瑜伽：紫
 }

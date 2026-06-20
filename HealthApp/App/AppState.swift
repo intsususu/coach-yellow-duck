@@ -34,6 +34,9 @@ final class AppState: ObservableObject {
     /// 事件单一数据源：各页只读它做图表叠加，写入只在事件模块。
     @Published var events: [HealthEvent] = []
 
+    /// 趋势图是否叠加事件：全局开关，由首页顶部控制，各趋势页共用。
+    @Published var showsEvents = true
+
     /// 当前选中 Tab（供首页 Hero 卡跳转体重页等使用）。
     @Published var selectedTab: Tab = .home
 
@@ -113,12 +116,16 @@ final class AppState: ObservableObject {
     /// 已存在的 id 原地更新；否则插入列表顶部，各页图表叠加随之刷新。
     func saveEvent(_ event: HealthEvent) async {
         let isNew = !events.contains { $0.id == event.id }
-        await repository.saveEvent(event)
-        if let index = events.firstIndex(where: { $0.id == event.id }) {
-            events[index] = event
+        var updatedEvents = events
+        if let index = updatedEvents.firstIndex(where: { $0.id == event.id }) {
+            updatedEvents[index] = event
         } else {
-            events.insert(event, at: 0)
+            updatedEvents.insert(event, at: 0)
         }
+
+        // 整体替换 @Published 数组，立即、明确地通知所有已存活 Tab 重绘图表。
+        events = updatedEvents
+        await repository.saveEvent(event)
         showToast(isNew ? "已记录：\(event.title)" : "已更新：\(event.title)")
     }
 

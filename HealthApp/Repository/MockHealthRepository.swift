@@ -39,13 +39,22 @@ final class MockHealthRepository: HealthDataRepository {
         Self.dailyActiveKcal
     }
 
+    func activeEnergyDailyTrend() async -> [DailyMetric] {
+        Self.dailyActiveKcalExtended
+    }
+
+    func basalEnergyDailyTrend() async -> [DailyMetric] {
+        Self.dailyBasalKcal
+    }
+
     func weightSeries(range: TimeRange) async -> [WeightSample] {
         switch range {
         // 周 / 月：日级序列，由可视窗口（7 天 / 30 天）滑动取景。
         case .week, .month: return Self.dailyWeights
         // 年：月级序列，按 12 个月的窗口滑动。
         case .year:         return Self.monthlyWeightsExtended
-        case .all:          return Self.yearlyWeights
+        // 「全部」年度聚合序列补入已有的最新日级真值，使时间轴覆盖 5–6 月近期事件。
+        case .all:          return Self.yearlyWeights + Array(Self.dailyWeights.suffix(1))
         }
     }
 
@@ -79,6 +88,10 @@ final class MockHealthRepository: HealthDataRepository {
 
     func exerciseSeries(range: TimeRange) async -> [ExerciseSample] {
         Self.recentExercise
+    }
+
+    func workoutSessions() async -> [WorkoutSession] {
+        Self.recentWorkouts
     }
 
     func events() async -> [HealthEvent] {
@@ -176,7 +189,25 @@ private extension MockHealthRepository {
 
     /// 睡眠 — 近 6 个月日级序列（含阶段分解）。前段为确定性生成、末段并入 `recentSleep` 真值，
     /// 供睡眠页「周 / 月」堆积图滑动取景，并由视图层聚合为「6 个月」周平均趋势。
-    static let extendedSleep: [SleepSample] = makeEarlySleep() + recentSleep
+    /// 逐晚补入确定性的入睡 / 起床时刻，使「平均入睡 / 起床时间」卡片走与真机相同的模型字段路径。
+    static let extendedSleep: [SleepSample] = withClockTimes(makeEarlySleep() + recentSleep)
+
+    /// 为每晚样本补上确定性的入睡 / 起床时刻（基准 23:42 上床、次日 06:58 起床，按日期抖动）。
+    private static func withClockTimes(_ samples: [SleepSample], calendar: Calendar = .current) -> [SleepSample] {
+        samples.map { sample in
+            var s = sample
+            let day = Double(calendar.ordinality(of: .day, in: .year, for: sample.date) ?? 0)
+            let jitter = sin(day * 1.7) * 0.6 + sin(day * 0.6 + 1.1) * 0.4
+            let dayStart = calendar.startOfDay(for: sample.date)
+            let nextStart = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
+            // 夜级 date 为「上床当天」，故入睡落在当天 23:42 前后、起床落在次日 06:58 前后。
+            s.bedtime = calendar.date(byAdding: .minute,
+                                      value: Int((23 * 60 + 42 + jitter * 45).rounded()), to: dayStart)
+            s.wakeTime = calendar.date(byAdding: .minute,
+                                       value: Int((6 * 60 + 58 + jitter * 32).rounded()), to: nextStart)
+            return s
+        }
+    }
 
     /// 生成 `recentSleep` 之前约 5 个月的每日睡眠（截至 2026-06-03），各阶段按经验占比拆分。
     private static func makeEarlySleep(calendar: Calendar = .current) -> [SleepSample] {
@@ -229,14 +260,149 @@ private extension MockHealthRepository {
         }
     }
 
-    /// 运动 — 近 6 个月（千卡 / 平均心率）。
-    static let recentExercise: [ExerciseSample] = [
-        ExerciseSample(label: "1月", kcal: 6822,  avgHR: 135.3),
-        ExerciseSample(label: "2月", kcal: 822,   avgHR: 150.3), // 生病，偏低
-        ExerciseSample(label: "3月", kcal: 4899,  avgHR: 130.4),
-        ExerciseSample(label: "4月", kcal: 8362,  avgHR: 122.6),
-        ExerciseSample(label: "5月", kcal: 14841, avgHR: 115.9), // 月末拉伤
-        ExerciseSample(label: "6月", kcal: 3714,  avgHR: 109.9), // 不完整月
-    ]
+    /// 运动趋势卡 — 近 6 个月每日「活动消耗」（千卡）。每日均有消耗（活动环），
+    /// 拉伤 / 感冒 / 出差期间整体下探约四成，与事件叠加呼应；末点 434 对齐契约值。
+    static let dailyActiveKcalExtended: [DailyMetric] = makeDailyActiveEnergy()
+
+    private static func makeDailyActiveEnergy(calendar: Calendar = .current) -> [DailyMetric] {
+        let end = HealthEvent.date("2026-06-17")
+        let dayCount = 182
+        // 低活动区间：腰肌拉伤、感冒发烧、出差（与 EventStore 种子事件一致）。
+        let pauses: [(Date, Date)] = [
+            (HealthEvent.date("2026-05-20"), HealthEvent.date("2026-05-27")),
+            (HealthEvent.date("2026-05-31"), HealthEvent.date("2026-06-06")),
+            (HealthEvent.date("2026-06-10"), HealthEvent.date("2026-06-14")),
+        ]
+        var result: [DailyMetric] = []
+        for i in 0..<dayCount {
+            guard let date = calendar.date(byAdding: .day, value: -(dayCount - 1 - i), to: end) else { continue }
+            let phase = Double(i)
+            let weekday = calendar.component(.weekday, from: date)
+            // 基线 ~430，叠加确定性周期波动；周末略高。
+            let weekendBonus = (weekday == 1 || weekday == 7) ? 55.0 : 0
+            var kcal = 430 + 90 * sin(phase * 0.5) + 45 * sin(phase * 0.17) + weekendBonus
+            if pauses.contains(where: { date >= $0.0 && date <= $0.1 }) {
+                kcal *= 0.6
+            }
+            result.append(DailyMetric(date: date, value: max(120, kcal.rounded())))
+        }
+        // 末点对齐首页契约（dailyExerciseKcal 末点 434）。
+        if let last = result.indices.last {
+            result[last] = DailyMetric(date: result[last].date, value: 434)
+        }
+        return result
+    }
+
+    /// 静息（基础代谢）消耗 — 近 6 个月每日（千卡）。约 1550 kcal/日，随体重与日期微幅波动；
+    /// 与活动消耗相加即为「含静息代谢的总消耗」。
+    static let dailyBasalKcal: [DailyMetric] = makeDailyBasalEnergy()
+
+    private static func makeDailyBasalEnergy(calendar: Calendar = .current) -> [DailyMetric] {
+        let end = HealthEvent.date("2026-06-17")
+        let dayCount = 182
+        var result: [DailyMetric] = []
+        for i in 0..<dayCount {
+            guard let date = calendar.date(byAdding: .day, value: -(dayCount - 1 - i), to: end) else { continue }
+            let phase = Double(i)
+            let kcal = 1550 + 60 * sin(phase * 0.08) + 25 * sin(phase * 0.6)
+            result.append(DailyMetric(date: date, value: kcal.rounded()))
+        }
+        return result
+    }
+
+    /// 运动统计卡 — 近 24 个月「按次」运动记录。约每周 4–5 练，
+    /// 拉伤 / 感冒 / 出差期间整段停训（与 dailyActiveKcalExtended 的低活动区间一致）。
+    /// 统计卡仅按所选周期窗口（≤180 天）取近段；更早记录供月度消耗「运动」口径回溯。
+    static let recentWorkouts: [WorkoutSession] = makeWorkouts()
+
+    private static func makeWorkouts(calendar: Calendar = .current) -> [WorkoutSession] {
+        let end = HealthEvent.date("2026-06-17")
+        let dayCount = 731
+        // 停训区间：腰肌拉伤、感冒发烧、出差（与 EventStore 种子事件一致）。
+        let pauses: [(Date, Date)] = [
+            (HealthEvent.date("2026-05-20"), HealthEvent.date("2026-05-27")),
+            (HealthEvent.date("2026-05-31"), HealthEvent.date("2026-06-06")),
+            (HealthEvent.date("2026-06-10"), HealthEvent.date("2026-06-14")),
+        ]
+        // 类型模板：以有氧（跑步）为主，搭配力量 / 骑行 / 游泳，偶尔步行、瑜伽。
+        let typeCycle: [WorkoutKind] = [.running, .strength, .running, .cycling,
+                                        .running, .swimming, .strength, .walking,
+                                        .running, .cycling, .yoga, .strength]
+        // 开始时段：早晚为主，穿插中午 / 下午。
+        let hourCycle = [7, 19, 7, 12, 18, 9, 20, 15]
+        var result: [WorkoutSession] = []
+        var pick = 0
+        for i in 0..<dayCount {
+            guard let day = calendar.date(byAdding: .day, value: -(dayCount - 1 - i), to: end) else { continue }
+            if pauses.contains(where: { day >= $0.0 && day <= $0.1 }) { continue }
+            // 每周固定两天休息，余下约 4–5 练。
+            if i % 7 == 2 || i % 7 == 5 { continue }
+            let kind = typeCycle[pick % typeCycle.count]
+            pick += 1
+            let minutes = 35 + (i % 5) * 8       // 35–67 分钟
+            let kcal = Double(minutes) * (kind == .strength ? 6.2 : 8.4)
+            let start = calendar.date(bySettingHour: hourCycle[i % hourCycle.count],
+                                      minute: (i * 7) % 60, second: 0, of: day) ?? day
+            result.append(WorkoutSession(start: start, type: kind, minutes: minutes, kcal: kcal.rounded(),
+                                         avgHR: heartRate(for: kind, phase: i)))
+            // 周末偶尔一日两练。
+            let weekday = calendar.component(.weekday, from: day)
+            if (weekday == 1 || weekday == 7) && i % 3 == 0 {
+                let kind2 = typeCycle[pick % typeCycle.count]
+                pick += 1
+                let min2 = 30 + (i % 4) * 6
+                let start2 = calendar.date(bySettingHour: 16, minute: 30, second: 0, of: day) ?? day
+                result.append(WorkoutSession(start: start2, type: kind2, minutes: min2,
+                                             kcal: (Double(min2) * 7.5).rounded(),
+                                             avgHR: heartRate(for: kind2, phase: i + 1)))
+            }
+        }
+        return result
+    }
+
+    /// 各运动类型的典型平均心率（次/分），叠加确定性微幅波动，使统计卡心率非定值。
+    private static func heartRate(for kind: WorkoutKind, phase: Int) -> Double {
+        let base: Double
+        switch kind {
+        case .running:  base = 152
+        case .strength: base = 128
+        case .cycling:  base = 142
+        case .swimming: base = 146
+        case .walking:  base = 112
+        case .yoga:     base = 98
+        }
+        return (base + 6 * sin(Double(phase) * 0.4)).rounded()
+    }
+
+    /// 运动 — 近 24 个月每月活动消耗（千卡），锚定当前月、支持横向回溯。
+    /// 最近 6 个月沿用既有「低-高-停训」叙事；更早月份为确定性平滑序列。
+    static let recentExercise: [ExerciseSample] = makeMonthlyActivity()
+
+    private static func makeMonthlyActivity(calendar: Calendar = .current) -> [ExerciseSample] {
+        let now = HealthEvent.date("2026-06-17")
+        guard let currentMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now)) else {
+            return []
+        }
+        let monthCount = 24
+        // 最近 6 个月（含当前不完整月）保留既有故事线，其余月份用确定性波动填充。
+        let recentKcal: [Double] = [6822, 822, 4899, 8362, 14841, 3714]
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "M月"
+        var result: [ExerciseSample] = []
+        for i in 0..<monthCount {
+            let offset = monthCount - 1 - i   // 距当前月的月数：最后一项为 0
+            guard let month = calendar.date(byAdding: .month, value: -offset, to: currentMonth) else { continue }
+            let kcal: Double
+            if offset < recentKcal.count {
+                kcal = recentKcal[recentKcal.count - 1 - offset]
+            } else {
+                let phase = Double(i)
+                kcal = max((11_000 + 5_000 * sin(phase * 0.55) + 2_400 * sin(phase * 1.3)).rounded(), 0)
+            }
+            result.append(ExerciseSample(month: month, label: formatter.string(from: month), kcal: kcal))
+        }
+        return result
+    }
 }
 #endif

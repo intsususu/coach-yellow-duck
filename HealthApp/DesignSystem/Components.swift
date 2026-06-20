@@ -150,7 +150,6 @@ struct TrendChartCard<ChartContent: View, LegendContent: View>: View {
     let title: String
     let accent: Color
     var background: Color
-    @Binding var showsEvents: Bool
     let isLoading: Bool
     let isEmpty: Bool
     var emptyText: String
@@ -178,18 +177,6 @@ struct TrendChartCard<ChartContent: View, LegendContent: View>: View {
                 .font(.system(size: 16, weight: .bold))
                 .foregroundColor(.textPrimary)
             Spacer()
-            // 文字与开关同属一个 Toggle 标签，点击「事件」文字及其周围均可切换。
-            Toggle(isOn: $showsEvents) {
-                Text("事件")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.textSecondary)
-                    .padding(.vertical, 6)
-                    .padding(.trailing, 4)
-                    .contentShape(Rectangle())
-            }
-            .tint(accent)
-            .fixedSize()
-            .accessibilityLabel("在图上显示事件")
         }
     }
 
