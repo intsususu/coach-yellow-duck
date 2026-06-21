@@ -4,6 +4,12 @@
 
 应用坚持隐私优先：HealthKit 仅读取，健康数据和分析过程均留在本机，不接入账号、云同步、第三方统计或远程日志。
 
+## 软件效果展示
+
+| 总览 | 体重 | 运动 | 睡眠 | 我的 |
+|:---:|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/01-总览.jpg" width="180" alt="总览"> | <img src="docs/screenshots/02-体重.jpg" width="180" alt="体重"> | <img src="docs/screenshots/03-运动.jpg" width="180" alt="运动"> | <img src="docs/screenshots/04-睡眠.jpg" width="180" alt="睡眠"> | <img src="docs/screenshots/05-我的.jpg" width="180" alt="我的"> |
+
 ## 当前能力
 
 - **总览**：展示最新体重、睡眠时长、活动热量、近 30 日趋势和近期事件；支持下拉刷新。周日会根据本周数据生成「本周小结」。
