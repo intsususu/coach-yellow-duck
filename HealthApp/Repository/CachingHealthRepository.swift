@@ -17,6 +17,7 @@ private struct TrendSnapshot: Codable {
     var exerciseSeries: [String: [ExerciseSample]] = [:]
     var workouts: [WorkoutSession] = []
     var weightSeries: [String: [WeightSample]] = [:]
+    var bodyFatSeries: [String: [BodyFatSample]] = [:]
     var recentWeight: [WeightSample] = []
     var weightStatistics = WeightStatistics()
     var sleepSeries: [String: [SleepSample]] = [:]
@@ -63,6 +64,7 @@ final class CachingHealthRepository: HealthDataRepository {
     private var exerciseSeriesCache: [TimeRange: [ExerciseSample]] = [:]
     private var workoutsCache: [WorkoutSession]?
     private var weightSeriesCache: [TimeRange: [WeightSample]] = [:]
+    private var bodyFatSeriesCache: [TimeRange: [BodyFatSample]] = [:]
     private var recentWeightCache: [WeightSample]?
     private var weightStatsCache: WeightStatistics?
     private var sleepSeriesCache: [TimeRange: [SleepSample]] = [:]
@@ -73,6 +75,7 @@ final class CachingHealthRepository: HealthDataRepository {
     private var exerciseSeriesTask: [TimeRange: Task<[ExerciseSample], Never>] = [:]
     private var workoutsTask: Task<[WorkoutSession], Never>?
     private var weightSeriesTask: [TimeRange: Task<[WeightSample], Never>] = [:]
+    private var bodyFatSeriesTask: [TimeRange: Task<[BodyFatSample], Never>] = [:]
     private var recentWeightTask: Task<[WeightSample], Never>?
     private var weightStatsTask: Task<WeightStatistics, Never>?
     private var sleepSeriesTask: [TimeRange: Task<[SleepSample], Never>] = [:]
@@ -92,11 +95,12 @@ final class CachingHealthRepository: HealthDataRepository {
         async let e = exerciseSeries(range: .all)
         async let w = workoutSessions()
         async let ws = weightSeries(range: .month)
+        async let bf = bodyFatSeries(range: .month)
         async let rw = recentWeightRecords(limit: 5)
         async let st = weightStatistics()
         async let sl = sleepSeries(range: .year)
         _ = await (a, b, e, w)
-        _ = await (ws, rw, st, sl)
+        _ = await (ws, bf, rw, st, sl)
     }
 
     /// 下拉刷新时丢弃本会话命中的内存值，再从底层数据源预热一轮。
@@ -107,6 +111,7 @@ final class CachingHealthRepository: HealthDataRepository {
         exerciseSeriesCache = [:]
         workoutsCache = nil
         weightSeriesCache = [:]
+        bodyFatSeriesCache = [:]
         recentWeightCache = nil
         weightStatsCache = nil
         sleepSeriesCache = [:]
@@ -122,6 +127,7 @@ final class CachingHealthRepository: HealthDataRepository {
         exerciseSeriesCache = [:]
         workoutsCache = nil
         weightSeriesCache = [:]
+        bodyFatSeriesCache = [:]
         recentWeightCache = nil
         weightStatsCache = nil
         sleepSeriesCache = [:]
@@ -131,6 +137,7 @@ final class CachingHealthRepository: HealthDataRepository {
         exerciseSeriesTask = [:]
         workoutsTask = nil
         weightSeriesTask = [:]
+        bodyFatSeriesTask = [:]
         recentWeightTask = nil
         weightStatsTask = nil
         sleepSeriesTask = [:]
@@ -225,6 +232,20 @@ final class CachingHealthRepository: HealthDataRepository {
         guard !fetched.isEmpty else { return snapshot.weightSeries[range.rawValue] ?? [] }
         weightSeriesCache[range] = fetched
         snapshot.weightSeries[range.rawValue] = fetched
+        persistSnapshot()
+        return fetched
+    }
+
+    func bodyFatSeries(range: TimeRange) async -> [BodyFatSample] {
+        if let cached = bodyFatSeriesCache[range] { return cached }
+        if let task = bodyFatSeriesTask[range] { return await task.value }
+        let task = Task { await base.bodyFatSeries(range: range) }
+        bodyFatSeriesTask[range] = task
+        let fetched = await task.value
+        bodyFatSeriesTask[range] = nil
+        guard !fetched.isEmpty else { return snapshot.bodyFatSeries[range.rawValue] ?? [] }
+        bodyFatSeriesCache[range] = fetched
+        snapshot.bodyFatSeries[range.rawValue] = fetched
         persistSnapshot()
         return fetched
     }

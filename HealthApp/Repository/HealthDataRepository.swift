@@ -27,6 +27,8 @@ protocol HealthDataRepository: AnyObject {
     /// 与活动消耗相加即为 Health 中「含静息代谢的总消耗」。
     func basalEnergyDailyTrend() async -> [DailyMetric]
     func weightSeries(range: TimeRange) async -> [WeightSample]
+    /// 体脂趋势：体脂肪（kg）与体脂率（%）双序列，随周期切换；与体重序列同口径分桶。
+    func bodyFatSeries(range: TimeRange) async -> [BodyFatSample]
     /// 最近 N 条体重测量原始记录（按日期降序）。
     func recentWeightRecords(limit: Int) async -> [WeightSample]
     /// 体重统计：当前 / 今年极值 / 历史极值 / 累计减少。

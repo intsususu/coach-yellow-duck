@@ -101,6 +101,8 @@ struct PillButton: View {
 enum TrendCardSpec {
     /// 卡片内图表区固定高度（含加载 / 空态占位）：统一上下高度。
     static let chartHeight: CGFloat = 220
+    /// 矮版图表区高度：用于变化幅度小的趋势（如体脂），省纵向空间。
+    static let compactChartHeight: CGFloat = 132
     /// 底部图例带固定高度：恒定预留，横滑 / 切 tab / 窗口内有无事件都不改变卡片高度。
     static let legendHeight: CGFloat = 18
     /// 事件点（菱形）边长：两图共用同一事件点样式。
@@ -158,6 +160,8 @@ struct TrendChartCard<ChartContent: View, LegendContent: View>: View {
     let isLoading: Bool
     let isEmpty: Bool
     var emptyText: String
+    /// 图表区高度，默认标准高度；变化小的趋势可传 `compactChartHeight` 压低。
+    var chartHeight: CGFloat = TrendCardSpec.chartHeight
     @ViewBuilder var chart: () -> ChartContent
     @ViewBuilder var legend: () -> LegendContent
 
@@ -190,18 +194,18 @@ struct TrendChartCard<ChartContent: View, LegendContent: View>: View {
         if isLoading && isEmpty {
             ProgressView()
                 .frame(maxWidth: .infinity,
-                       minHeight: TrendCardSpec.chartHeight,
-                       maxHeight: TrendCardSpec.chartHeight)
+                       minHeight: chartHeight,
+                       maxHeight: chartHeight)
         } else if isEmpty {
             Text(emptyText)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.textSecondary)
                 .frame(maxWidth: .infinity,
-                       minHeight: TrendCardSpec.chartHeight,
-                       maxHeight: TrendCardSpec.chartHeight)
+                       minHeight: chartHeight,
+                       maxHeight: chartHeight)
         } else {
             chart()
-                .frame(height: TrendCardSpec.chartHeight)
+                .frame(height: chartHeight)
         }
     }
 }

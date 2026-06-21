@@ -6,6 +6,7 @@ import Foundation
 @MainActor
 final class WeightViewModel: ObservableObject {
     @Published private(set) var samples: [WeightSample] = []
+    @Published private(set) var bodyFatSamples: [BodyFatSample] = []
     @Published private(set) var recentRecords: [WeightSample] = []
     @Published private(set) var statistics = WeightStatistics()
     @Published private(set) var isLoading = false
@@ -28,13 +29,17 @@ final class WeightViewModel: ObservableObject {
         let requestID = UUID()
         seriesRequestID = requestID
         isLoading = true
-        let loadedSamples = await repository.weightSeries(range: range)
+        // 体重与体脂同周期并行拉取，保证两图切换 tab 时同步刷新。
+        async let weights = repository.weightSeries(range: range)
+        async let bodyFat = repository.bodyFatSeries(range: range)
+        let (loadedSamples, loadedBodyFat) = await (weights, bodyFat)
 
         guard !Task.isCancelled, seriesRequestID == requestID else {
             if seriesRequestID == requestID { isLoading = false }
             return false
         }
         samples = loadedSamples
+        bodyFatSamples = loadedBodyFat
         isLoading = false
         return true
     }

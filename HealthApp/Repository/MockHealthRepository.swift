@@ -58,6 +58,11 @@ final class MockHealthRepository: HealthDataRepository {
         }
     }
 
+    func bodyFatSeries(range: TimeRange) async -> [BodyFatSample] {
+        // 与体重序列同口径分桶，体脂由对应体重派生，保证两图周期一致。
+        Self.bodyFat(from: await weightSeries(range: range))
+    }
+
     func recentWeightRecords(limit: Int) async -> [WeightSample] {
         Array(Self.dailyWeights.suffix(limit).reversed())
     }
@@ -161,6 +166,20 @@ private extension MockHealthRepository {
             result.append(WeightSample(date: last.0, kg: last.1))
         }
         return result
+    }
+
+    /// 由体重序列派生体脂：体脂率随体重确定性变化（体重越重体脂率越高），
+    /// 体脂肪质量 = 体重 × 体脂率。无随机，保证 Mock 视觉稳定。
+    static func bodyFat(from weights: [WeightSample]) -> [BodyFatSample] {
+        weights.map { sample in
+            // 以 72kg 对应约 18% 为基准，每偏离 1kg 体脂率约动 0.45 个百分点，限定在合理区间。
+            let raw = 18.0 + (sample.kg - 72.0) * 0.45
+            let percent = min(max(raw, 12.0), 34.0)
+            let fatMass = sample.kg * percent / 100.0
+            return BodyFatSample(date: sample.date,
+                                 fatMassKg: fatMass.rounded(toPlaces: 1),
+                                 fatPercent: percent.rounded(toPlaces: 1))
+        }
     }
 
     /// 体重 — 年（均值）。

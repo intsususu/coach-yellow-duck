@@ -142,6 +142,45 @@ final class HealthKitRepository: HealthDataRepository {
         }
     }
 
+    func bodyFatSeries(range: TimeRange) async -> [BodyFatSample] {
+        guard let bodyMass = HKObjectType.quantityType(forIdentifier: .bodyMass),
+              let bodyFat = HKObjectType.quantityType(forIdentifier: .bodyFatPercentage) else { return [] }
+        let end = Date()
+        let configuration = weightConfiguration(for: range, end: end)
+        let massUnit = HKUnit.gramUnit(with: .kilo)
+
+        do {
+            // 与体重序列同口径分桶：体脂率取均值，体脂肪质量 = 当桶体重均值 × 体脂率。
+            async let massBuckets = statistics(type: bodyMass,
+                                               options: .discreteAverage,
+                                               start: configuration.start,
+                                               end: end,
+                                               anchor: configuration.anchor,
+                                               interval: configuration.interval)
+            async let fatBuckets = statistics(type: bodyFat,
+                                              options: .discreteAverage,
+                                              start: configuration.start,
+                                              end: end,
+                                              anchor: configuration.anchor,
+                                              interval: configuration.interval)
+            let (masses, fats) = try await (massBuckets, fatBuckets)
+            let massByDate = Dictionary(uniqueKeysWithValues: masses.compactMap { bucket -> (Date, Double)? in
+                guard let kg = bucket.statistics.averageQuantity()?.doubleValue(for: massUnit) else { return nil }
+                return (bucket.startDate, kg)
+            })
+            return fats.compactMap { bucket in
+                // HKUnit.percent() 返回 0~1 的分数。
+                guard let fraction = bucket.statistics.averageQuantity()?.doubleValue(for: .percent()),
+                      let kg = massByDate[bucket.startDate] else { return nil }
+                return BodyFatSample(date: bucket.startDate,
+                                     fatMassKg: (kg * fraction).rounded(toPlaces: 1),
+                                     fatPercent: (fraction * 100).rounded(toPlaces: 1))
+            }
+        } catch {
+            return []
+        }
+    }
+
     func recentWeightRecords(limit: Int) async -> [WeightSample] {
         guard let bodyMass = HKObjectType.quantityType(forIdentifier: .bodyMass) else { return [] }
         let unit = HKUnit.gramUnit(with: .kilo)
@@ -311,6 +350,7 @@ private extension HealthKitRepository {
     var readTypes: Set<HKObjectType> {
         let identifiers: [HKQuantityTypeIdentifier] = [
             .bodyMass,
+            .bodyFatPercentage,
             .activeEnergyBurned,
             .basalEnergyBurned,
             .appleExerciseTime,
