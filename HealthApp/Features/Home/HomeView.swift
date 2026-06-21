@@ -12,8 +12,8 @@ struct HomeView: View {
         ScrollView {
             VStack(spacing: 12) {
                 topBar
-                if Self.isSunday, let narrative = vm.weeklyNarrative {
-                    weeklySummaryCard(narrative)
+                if Self.isSunday, let report = vm.weeklyReport {
+                    weeklySummaryCard(report)
                 }
                 heroCard
                 sleepCard
@@ -23,13 +23,25 @@ struct HomeView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
+        .refreshable { await refresh() }
         .background(Color.appBg.ignoresSafeArea())
         .sheet(isPresented: $showsEventTimeline) {
             EventTimelineView()
         }
-        .task { await vm.load(from: appState.repository,
-                              events: appState.events,
-                              goalWeight: appState.goalWeight) }
+        .task(id: appState.isInitialLoadComplete) {
+            guard appState.isInitialLoadComplete else { return }
+            await vm.load(from: appState.repository,
+                          events: appState.events,
+                          goalWeight: appState.goalWeight)
+        }
+    }
+
+    private func refresh() async {
+        await appState.repository.refreshCachedData()
+        await appState.loadInitialData()
+        await vm.load(from: appState.repository,
+                      events: appState.events,
+                      goalWeight: appState.goalWeight)
     }
 
     // MARK: - 顶部栏
@@ -206,25 +218,46 @@ struct HomeView: View {
 
     // MARK: - 本周小结卡（仅周日展示，置顶；内容由综合分析引擎按本周数据生成）
 
-    private func weeklySummaryCard(_ narrative: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("本周小结")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(.textPrimary)
-            Text(narrative)
-                .font(.system(size: 13))
-                .foregroundColor(.textPrimary)
-                .lineSpacing(4)
+    private func weeklySummaryCard(_ report: AnalysisReport) -> some View {
+        Button {
+            // 首页和报告页共用同一个报告快照，确保两处文案及返回后的内容完全一致。
+            appState.presentAnalysis(report: report)
+        } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image("ChickAvatar")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 26, height: 26)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    Text("本周小结")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.textPrimary)
+                    Spacer()
+                    Text("查看报告")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.brandBlue)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.brandBlue)
+                }
+                Text(report.narrative)
+                    .font(.system(size: 13))
+                    .foregroundColor(.textPrimary)
+                    .multilineTextAlignment(.leading)
+                    .lineSpacing(4)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.brandBlue.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(Color.brandBlue.opacity(0.4),
+                                  style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+            )
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.brandBlue.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.brandBlue.opacity(0.4),
-                              style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
-        )
+        .buttonStyle(.plain)
     }
 
     // MARK: - 近期事件卡

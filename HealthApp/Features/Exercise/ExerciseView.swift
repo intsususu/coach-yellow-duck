@@ -43,6 +43,7 @@ struct ExerciseView: View {
                 .animation(.easeInOut(duration: 0.2), value: selectedEvent)
                 .animation(.easeInOut(duration: 0.2), value: selectedLegendType)
             }
+            .refreshable { await refresh() }
             .background(Color.appBg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .task {
@@ -73,6 +74,18 @@ struct ExerciseView: View {
                 resetMonthlyScroll()
             }
         }
+    }
+
+    private func refresh() async {
+        selectedEvent = nil
+        selectedLegendType = nil
+        await appState.repository.refreshCachedData()
+        await appState.loadInitialData()
+        await viewModel.loadDailyIfNeeded(from: appState.repository, forceReload: true)
+        await viewModel.loadMonthlyIfNeeded(from: appState.repository, forceReload: true)
+        guard !Task.isCancelled else { return }
+        resetScrollToLatest()
+        resetMonthlyScroll()
     }
 
     // MARK: - 周期选择 + 运动消耗趋势卡

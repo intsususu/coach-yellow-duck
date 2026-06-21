@@ -13,11 +13,13 @@ final class WeightViewModel: ObservableObject {
     private var hasLoadedSummary = false
     private var seriesRequestID: UUID?
 
-    func loadInitialData(from repository: HealthDataRepository) async {
-        guard !hasLoadedSummary else { return }
+    func loadInitialData(from repository: HealthDataRepository,
+                         forceReload: Bool = false) async {
+        guard forceReload || !hasLoadedSummary else { return }
         hasLoadedSummary = true
-        recentRecords = await repository.recentWeightRecords(limit: 5)
-        statistics = await repository.weightStatistics()
+        async let records = repository.recentWeightRecords(limit: 5)
+        async let stats = repository.weightStatistics()
+        (recentRecords, statistics) = await (records, stats)
     }
 
     /// 只允许最新的范围请求提交数据，避免快速切换时旧请求覆盖新图表。

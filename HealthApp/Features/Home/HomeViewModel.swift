@@ -14,8 +14,8 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var sleepTrend: [DailyMetric] = []
     /// 运动卡：最近 30 日每日活动热量趋势。
     @Published private(set) var energyTrend: [DailyMetric] = []
-    /// 「本周小结」一句话：复用综合分析引擎，对最近 7 天与上一周对比生成。
-    @Published private(set) var weeklyNarrative: String?
+    /// 「本周小结」对应的完整报告：首页与报告页共用同一个快照，避免重复生成后内容漂移。
+    @Published private(set) var weeklyReport: AnalysisReport?
 
     func load(from repository: HealthDataRepository,
               events: [HealthEvent] = [],
@@ -30,16 +30,16 @@ final class HomeViewModel: ObservableObject {
         ringMetrics = await ringsTask
         sleepTrend = await sleepTask
         energyTrend = await energyTask
-        weeklyNarrative = await Self.makeWeeklyNarrative(repository: repository,
-                                                         events: events,
-                                                         goalWeight: goalWeight)
+        weeklyReport = await Self.makeWeeklyReport(repository: repository,
+                                                   events: events,
+                                                   goalWeight: goalWeight)
     }
 
     /// 取最近一段（≥两周）的体重 / 睡眠 / 运动数据，以最新数据日为周末，
-    /// 对「最近 7 天 vs 上一周」跑一遍综合分析引擎，仅取其合成的一句话小结。
-    static func makeWeeklyNarrative(repository: HealthDataRepository,
-                                    events: [HealthEvent],
-                                    goalWeight: Double) async -> String? {
+    /// 对「最近 7 天 vs 上一周」跑一遍综合分析引擎，保留完整报告供首页与报告页共用。
+    static func makeWeeklyReport(repository: HealthDataRepository,
+                                 events: [HealthEvent],
+                                 goalWeight: Double) async -> AnalysisReport? {
         async let weightsTask = repository.weightSeries(range: .month)
         async let sleepsTask = repository.sleepSeries(range: .month)
         async let workoutsTask = repository.workoutSessions()
@@ -55,14 +55,13 @@ final class HomeViewModel: ObservableObject {
         let calendar = Calendar.current
         let endDate = calendar.startOfDay(for: latest)
         let startDate = calendar.date(byAdding: .day, value: -6, to: endDate) ?? endDate
-        let report = AnalysisReportEngine().makeReport(weights: weights,
-                                                       sleeps: sleeps,
-                                                       workouts: workouts,
-                                                       events: events,
-                                                       goalWeight: goalWeight,
-                                                       startDate: startDate,
-                                                       endDate: endDate)
-        return report.narrative
+        return AnalysisReportEngine().makeReport(weights: weights,
+                                                 sleeps: sleeps,
+                                                 workouts: workouts,
+                                                 events: events,
+                                                 goalWeight: goalWeight,
+                                                 startDate: startDate,
+                                                 endDate: endDate)
     }
 
     /// 首页三指标 hero 数的「最新一笔」：值 + 日期 + 是否当日测量。

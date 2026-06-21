@@ -13,65 +13,66 @@ struct ProfileView: View {
     @State private var showsEventTimeline = false
     @State private var showsAbout = false
     @State private var showsHealthImport = false
-    @State private var showsAnalysis = false
     @State private var currentWeight: Double?
 
     /// 沉浸式渐变高度：顶部主色渐隐到页面底色，约过渡到屏幕中部。
     private let immersiveHeight: CGFloat = 360
 
     var body: some View {
-        NavigationStack {
-            ZStack(alignment: .top) {
-                Color.appBg.ignoresSafeArea()
+        ZStack {
+            NavigationStack {
+                ZStack(alignment: .top) {
+                    Color.appBg.ignoresSafeArea()
 
-                LinearGradient(
-                    colors: [store.headerTint, store.headerTint.opacity(0)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: immersiveHeight)
-                .frame(maxWidth: .infinity)
-                .ignoresSafeArea(edges: .top)
+                    LinearGradient(
+                        colors: [store.headerTint, store.headerTint.opacity(0)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: immersiveHeight)
+                    .frame(maxWidth: .infinity)
+                    .ignoresSafeArea(edges: .top)
 
-                ScrollView {
-                    VStack(spacing: 14) {
-                        profileHeader
-                        goalCard
-                        dataSettings
-                        privacySettings
-                        aboutSettings
+                    ScrollView {
+                        VStack(spacing: 14) {
+                            profileHeader
+                            goalCard
+                            dataSettings
+                            privacySettings
+                            aboutSettings
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 12)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
                 }
-            }
-            .toolbar(.hidden, for: .navigationBar)
-            .sheet(isPresented: $showsProfileEditor) {
-                ProfileEditView(store: store)
-            }
-            .sheet(isPresented: $showsGoalEditor) {
-                GoalEditSheet(goalWeight: appState.goalWeight) { newGoal in
-                    appState.goalWeight = newGoal
-                    appState.showToast("目标体重已更新")
+                // 根页（count==1）：用统一的手势代理拒绝左缘右滑，避免页面被边缘
+                // 拖动、露出白底；进入数据来源等子页后子页的同款代理会放行返回手势。
+                .background(SwipeBackGestureEnabler())
+                .toolbar(.hidden, for: .navigationBar)
+                .sheet(isPresented: $showsProfileEditor) {
+                    ProfileEditView(store: store)
                 }
-                .presentationDetents([.medium])
-            }
-            .sheet(isPresented: $showsEventTimeline) {
-                EventTimelineView()
-            }
-            .sheet(isPresented: $showsAbout) {
-                AboutView()
-            }
-            .navigationDestination(isPresented: $showsHealthImport) {
-                // 管理页：可经系统返回按钮与左缘右滑返回；再次点击连接按钮跳转系统设置管理权限。
-                ImportView(isOnboarding: false)
-            }
-            .navigationDestination(isPresented: $showsAnalysis) {
-                AnalysisRangePickerView(repository: appState.repository)
-            }
-            .task {
-                let samples = await appState.repository.weightSeries(range: .week)
-                currentWeight = samples.last?.kg.rounded(toPlaces: 1)
+                .sheet(isPresented: $showsGoalEditor) {
+                    GoalEditSheet(goalWeight: appState.goalWeight) { newGoal in
+                        appState.goalWeight = newGoal
+                        appState.showToast("目标体重已更新")
+                    }
+                    .presentationDetents([.medium])
+                }
+                .sheet(isPresented: $showsEventTimeline) {
+                    EventTimelineView()
+                }
+                .sheet(isPresented: $showsAbout) {
+                    AboutView()
+                }
+                .navigationDestination(isPresented: $showsHealthImport) {
+                    // 管理页：可经系统返回按钮与左缘右滑返回；再次点击连接按钮跳转系统设置管理权限。
+                    ImportView(isOnboarding: false)
+                }
+                .task {
+                    let samples = await appState.repository.weightSeries(range: .week)
+                    currentWeight = samples.last?.kg.rounded(toPlaces: 1)
+                }
             }
         }
     }
@@ -171,15 +172,15 @@ struct ProfileView: View {
             }
             settingDivider
             settingRow(icon: "chart.line.uptrend.xyaxis", title: "综合分析", value: "趋势/关联/建议 ›", tint: .brandBlue) {
-                showsAnalysis = true
-            }
-            settingDivider
-            settingRow(icon: "square.and.arrow.down.fill", title: "体测数据导入", value: "暂未开放 ›", tint: .eventTravel) {
-                placeholderToast("体测数据导入")
+                appState.presentAnalysis()
             }
             settingDivider
             settingRow(icon: "calendar.badge.clock", title: "事件管理", value: "伤病/出行/饮酒/其他 ›", tint: .brandBlue) {
                 showsEventTimeline = true
+            }
+            settingDivider
+            settingRow(icon: "square.and.arrow.down.fill", title: "体测数据导入", value: "暂未开放 ›", tint: .eventTravel, valueColor: .textMuted) {
+                placeholderToast("体测数据导入")
             }
         }
     }
@@ -227,9 +228,14 @@ struct ProfileView: View {
 
     // MARK: - 关于
 
+    private var appVersion: String {
+        let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        return "v\(v)"
+    }
+
     private var aboutSettings: some View {
         settingsGroup(title: "关于") {
-            settingRow(icon: "info.circle.fill", title: "关于加油吖！", value: "v1.0 ›", tint: .textSecondary) {
+            settingRow(icon: "info.circle.fill", title: "关于加油吖！", value: "\(appVersion) ›", tint: .textSecondary) {
                 showsAbout = true
             }
         }
@@ -253,6 +259,7 @@ struct ProfileView: View {
                             title: String,
                             value: String,
                             tint: Color,
+                            valueColor: Color = .textSecondary,
                             action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 12) {
@@ -268,7 +275,7 @@ struct ProfileView: View {
                 Spacer()
                 Text(value)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.textSecondary)
+                    .foregroundColor(valueColor)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             }

@@ -8,6 +8,9 @@ struct AnalysisRangePickerView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel: AnalysisViewModel
 
+    /// 返回进入综合分析前的来源页。
+    let onClose: () -> Void
+
     @State private var selectedPeriod: AnalysisPeriod? = .week
     @State private var startDate = Date()
     @State private var endDate = Date()
@@ -22,8 +25,9 @@ struct AnalysisRangePickerView: View {
         return calendar
     }()
 
-    init(repository: HealthDataRepository) {
+    init(repository: HealthDataRepository, onClose: @escaping () -> Void) {
         _viewModel = StateObject(wrappedValue: AnalysisViewModel(repository: repository))
+        self.onClose = onClose
     }
 
     var body: some View {
@@ -31,6 +35,7 @@ struct AnalysisRangePickerView: View {
             Color.appBg.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    topBar
                     header
                     periodPicker
                     dateCard
@@ -47,10 +52,11 @@ struct AnalysisRangePickerView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: isGenerating)
-        .navigationTitle("综合分析")
-        .navigationBarTitleDisplayMode(.inline)
+        // 沉浸式：隐藏系统导航栏，返回用自定义按钮。
+        .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
-        .toolbar(isGenerating ? .hidden : .visible, for: .navigationBar)
+        // 导航栏隐藏后恢复系统原生交互式返回。
+        .background(SwipeBackGestureEnabler())
         .safeAreaInset(edge: .bottom) {
             if !isGenerating { generateButton }
         }
@@ -65,6 +71,22 @@ struct AnalysisRangePickerView: View {
         }
         .onChange(of: viewModel.latestDataDate) { _, _ in
             applyInitialRangeIfNeeded()
+        }
+    }
+
+    /// 顶部返回栏：隐藏系统导航栏后替代系统返回按钮（左缘右滑仍可用）。
+    private var topBar: some View {
+        HStack {
+            Button { onClose() } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.textPrimary)
+                    .frame(width: 38, height: 38)
+                    .background(.ultraThinMaterial, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("返回")
+            Spacer()
         }
     }
 
@@ -144,18 +166,7 @@ struct AnalysisRangePickerView: View {
 
     private var generateButton: some View {
         Button {
-            guard !isGenerating else { return }
-            isGenerating = true
-            let generatedReport = viewModel.makeReport(startDate: startDate,
-                                                       endDate: endDate,
-                                                       events: appState.events,
-                                                       goalWeight: appState.goalWeight)
-            Task {
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
-                report = generatedReport
-                isGenerating = false
-                showsReport = true
-            }
+            generateReport()
         } label: {
             Text("生成报告")
                 .font(.system(size: 15, weight: .semibold))
@@ -191,6 +202,24 @@ struct AnalysisRangePickerView: View {
         }
         let count = viewModel.dataDayCount(from: startDate, to: endDate)
         return "已选 \(selectedDays) 天 · 区间内有数据 \(count) 天"
+    }
+
+    /// 生成报告：先合成报告，过渡动画结束后推入报告页。可选显式区间（自动生成本周用）。
+    private func generateReport(startDate: Date? = nil, endDate: Date? = nil) {
+        guard !isGenerating else { return }
+        let start = startDate ?? self.startDate
+        let end = endDate ?? self.endDate
+        isGenerating = true
+        let generatedReport = viewModel.makeReport(startDate: start,
+                                                   endDate: end,
+                                                   events: appState.events,
+                                                   goalWeight: appState.goalWeight)
+        Task {
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            report = generatedReport
+            isGenerating = false
+            showsReport = true
+        }
     }
 
     private func applyInitialRangeIfNeeded() {
@@ -238,10 +267,17 @@ private struct AnalysisLoadingTransitionView: View {
 
 struct AnalysisReportView: View {
     let report: AnalysisReport
+    /// 首页直达报告时关闭整个分析层；常规生成报告时 nil，返回日期选择页。
+    let onBack: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @Environment(\.displayScale) private var displayScale
 
     @State private var shareItem: ShareImageItem?
+
+    init(report: AnalysisReport, onBack: (() -> Void)? = nil) {
+        self.report = report
+        self.onBack = onBack
+    }
 
     var body: some View {
         ZStack {
@@ -259,7 +295,7 @@ struct AnalysisReportView: View {
         // 沉浸式：隐藏系统导航栏，渐变直达顶部，返回用自定义按钮。
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
-        // 隐藏导航栏后，确保左缘右滑返回手势仍然可用。
+        // 导航栏隐藏后恢复系统原生交互式返回。
         .background(SwipeBackGestureEnabler())
         .sheet(item: $shareItem) { item in
             SharePreviewView(image: item.image)
@@ -283,7 +319,7 @@ struct AnalysisReportView: View {
     /// 顶部栏：左侧自定义返回（隐藏导航栏后替代系统返回；左缘右滑仍可用），右侧分享。
     private var topBar: some View {
         HStack {
-            Button { dismiss() } label: {
+            Button { goBack() } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.textPrimary)
@@ -301,6 +337,14 @@ struct AnalysisReportView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("分享报告")
+        }
+    }
+
+    private func goBack() {
+        if let onBack {
+            onBack()
+        } else {
+            dismiss()
         }
     }
 
@@ -664,9 +708,11 @@ struct AnalysisReportView: View {
 
 }
 
-/// 隐藏系统导航栏后，SwiftUI 可能连带禁用左缘右滑返回手势。
-/// 通过接管 interactivePopGestureRecognizer 的代理，在栈内有可返回页面时放行手势。
-private struct SwipeBackGestureEnabler: UIViewControllerRepresentable {
+/// 统一接管 interactivePopGestureRecognizer 的代理：栈内有可返回页面（count>1）才放行手势。
+/// 子页用它确保隐藏系统导航栏后左缘右滑仍可用；根页（count==1）用它则会拒绝手势，
+/// 隐藏系统导航栏后重新启用 UINavigationController 的原生交互式返回。
+/// 只有导航栈确实存在上一页时才允许开始，因此拖动过程会实时露出真实来源页。
+struct SwipeBackGestureEnabler: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController { GestureController() }
     func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 
@@ -677,6 +723,13 @@ private struct SwipeBackGestureEnabler: UIViewControllerRepresentable {
                 gesture.delegate = self
                 gesture.isEnabled = true
             }
+            // 把导航容器及每个页面承载控制器的底色统一成 App 底色：快速交互式右滑返回时，
+            // 各页面 UIHostingController 默认的纯白底（systemBackground）会在底层页面内容
+            // 渲染前的缝隙里短暂露出（慢滑看不到、快滑才闪白）。统一为 appBg 后即便露出也与
+            // 页面一致，不再出现白色。注意要设的是每个子控制器的 view，而非外层导航容器。
+            let appBg = UIColor(.appBg)
+            navigationController?.view.backgroundColor = appBg
+            navigationController?.viewControllers.forEach { $0.view.backgroundColor = appBg }
         }
 
         func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {

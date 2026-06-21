@@ -312,48 +312,45 @@ struct AboutView: View {
 
     private var version: String {
         let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-        let b = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
-        return "v\(v) (\(b))"
+        return "v\(v)"
     }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    Image("ChickAvatar")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 96, height: 96)
-                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                        .shadow(color: .black.opacity(0.1), radius: 10, y: 4)
-                        .padding(.top, 24)
+            VStack(spacing: 16) {
+                Image("ChickAvatar")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 88, height: 88)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .shadow(color: .black.opacity(0.1), radius: 10, y: 4)
+                    .padding(.top, 28)
 
-                    Text("加油吖！")
-                        .font(.system(size: 20, weight: .heavy))
-                        .foregroundColor(.textPrimary)
-                    Text(version)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.textSecondary)
+                Text("加油吖！")
+                    .font(.system(size: 20, weight: .heavy))
+                    .foregroundColor(.textPrimary)
+                Text(version)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.textSecondary)
 
-                    CardView(padding: 0) {
-                        VStack(spacing: 0) {
-                            aboutRow(title: "App 名称", value: "加油吖！")
-                            Divider().background(Color.hairline).padding(.leading, 16)
-                            aboutRow(title: "版本", value: version)
-                            Divider().background(Color.hairline).padding(.leading, 16)
-                            aboutRow(title: "数据来源", value: "Apple 健康")
-                        }
+                CardView(padding: 0) {
+                    VStack(spacing: 0) {
+                        aboutRow(title: "版本", value: version)
+                        Divider().background(Color.hairline).padding(.leading, 16)
+                        aboutRow(title: "数据来源", value: "Apple 健康")
                     }
-
-                    Text("坚持自律，和小黄鸡一起变更好 🐤")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.textMuted)
-                        .padding(.top, 8)
-
-                    Spacer(minLength: 20)
                 }
-                .padding(20)
+                .padding(.top, 4)
+
+                Text("坚持自律，每天都要加油吖 🐥")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.textMuted)
+                    .padding(.top, 4)
+
+                Spacer()
             }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .top)
             .background(Color.appBg.ignoresSafeArea())
             .navigationTitle("关于")
             .navigationBarTitleDisplayMode(.inline)

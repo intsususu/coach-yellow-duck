@@ -199,8 +199,8 @@ struct AnalysisReportEngine {
                                                           previousAverageSleep: previousAverageSleep,
                                                           currentEvents: currentEvents,
                                                           sentiment: sentiment),
-                              // 打乱后取首条，让每次生成的鸡汤文案有变化。
-                              messages: messages(for: sentiment).shuffled())
+                              // 相同数据区间生成稳定文案，避免往返页面后报告内容变化。
+                              messages: messages(for: sentiment))
     }
 
     /// 把体重、运动、睡眠三条趋势信号合成一句自然语言小结。
@@ -268,8 +268,8 @@ struct AnalysisReportEngine {
         }
 
         switch sentiment {
-        case .positive: sentence += " 👍"
-        case .negative: sentence += " 💪"
+        case .positive: sentence = "👍 " + sentence
+        case .negative: sentence = "💪 " + sentence
         case .neutral: break
         }
         return sentence

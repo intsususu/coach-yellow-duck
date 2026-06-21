@@ -50,6 +50,11 @@ final class AppState: ObservableObject {
     /// 全局 ＋记事件弹窗（E2）的呈现状态（任意 Tab 右上＋ 唤起，新建）。
     @Published var isEventEditorPresented = false
 
+    /// 综合分析全屏覆盖层的呈现状态（「我的」入口与首页本周小结共用）。
+    @Published var showsAnalysis = false
+    /// 首页进入综合分析时携带的本周报告快照；从「我的」进入时为 nil。
+    @Published var initialAnalysisReport: AnalysisReport?
+
     /// Toast 文案，非空即显示。
     @Published var toastMessage: String?
 
@@ -163,6 +168,12 @@ final class AppState: ObservableObject {
     /// 唤起全局记录事件弹窗（E2，新建）。任意 Tab 右上＋ 调用。
     func presentEventEditor() {
         isEventEditorPresented = true
+    }
+
+    /// 呈现综合分析全屏覆盖层。传入报告时直接展示该快照，否则从日期选择页开始。
+    func presentAnalysis(report: AnalysisReport? = nil) {
+        initialAnalysisReport = report
+        showsAnalysis = true
     }
 
     /// 保存事件（新增或编辑）：写入仓库 + 更新全局单一数据源 + Toast。

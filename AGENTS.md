@@ -48,6 +48,13 @@
 - 工程需能在 iOS 16 模拟器编译运行无报错；阶段一（T01–T08）不依赖真机 / HealthKit。
 - 未经用户要求，不执行 `git push`、不发布、不改 CI/签名配置。
 
+### 7.1 版本号管理
+- 版本规则以 [`docs/VERSIONING.md`](docs/VERSIONING.md) 为准：`MARKETING_VERSION` 使用 `MAJOR.MINOR.PATCH`，`CURRENT_PROJECT_VERSION` 为单调递增构建号。
+- 新克隆后确认已执行 `git config core.hooksPath .githooks`；正常提交必须保留 pre-commit hook，由它自动递增 PATCH 与构建号并暂存 `project.pbxproj`。
+- 创建 PR 前若包含独立功能，必须先询问用户是否升级 MINOR；用户确认后运行 `./scripts/bump-minor.sh`，不得手动改版本号或绕过脚本。
+- MAJOR 仅在用户明确决定大版本升级时运行 `./scripts/bump-major.sh`。
+- 合并版本号冲突时，`MARKETING_VERSION` 的 PATCH 与 `CURRENT_PROJECT_VERSION` 均保留较大值。
+
 ## 8. 范围纪律
 - 不擅自增加 PRD §2.3 / §11 列为「不做 / Backlog」的功能（提醒推送、导出落地、Watch、云同步、多账号等）。
 - 发现 PRD 未决问题（§12.2）或需求歧义时**先问，不臆测**。

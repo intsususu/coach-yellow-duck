@@ -99,6 +99,21 @@ final class CachingHealthRepository: HealthDataRepository {
         _ = await (ws, rw, st, sl)
     }
 
+    /// 下拉刷新时丢弃本会话命中的内存值，再从底层数据源预热一轮。
+    /// 落盘快照继续保留，因此 HealthKit 暂时返回空结果时仍能回退到上次有效数据。
+    func refreshCachedData() async {
+        activeDaily = nil
+        basalDaily = nil
+        exerciseSeriesCache = [:]
+        workoutsCache = nil
+        weightSeriesCache = [:]
+        recentWeightCache = nil
+        weightStatsCache = nil
+        sleepSeriesCache = [:]
+
+        await prewarm()
+    }
+
     /// 清空全部缓存：内存会话值 + 在途任务引用 + 落盘快照。
     /// 不触碰事件 / 目标 / 授权等用户数据；清空后下次 prewarm 会从真实数据源重新拉取。
     func clearCache() {

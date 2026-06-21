@@ -33,6 +33,7 @@ struct WeightView: View {
                 .animation(.easeInOut(duration: 0.2), value: selectedEvent)
                 .animation(.easeInOut(duration: 0.2), value: selectedLegendType)
             }
+            .refreshable { await refresh() }
             .background(Color.appBg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .task { await viewModel.loadInitialData(from: appState.repository) }
@@ -59,6 +60,25 @@ struct WeightView: View {
             .onChange(of: selectedEvent) { event in
                 if event != nil { selectedLegendType = nil }
             }
+        }
+    }
+
+    private func refresh() async {
+        selectedEvent = nil
+        selectedLegendType = nil
+        await appState.repository.refreshCachedData()
+        await appState.loadInitialData()
+        await viewModel.loadInitialData(from: appState.repository, forceReload: true)
+
+        let requestedRange = selectedRange
+        let didCommit = await viewModel.loadSeries(for: requestedRange,
+                                                   from: appState.repository)
+        guard didCommit, !Task.isCancelled, selectedRange == requestedRange else { return }
+        var transaction = Transaction()
+        transaction.animation = nil
+        withTransaction(transaction) {
+            resetScrollToLatest(for: requestedRange)
+            chartRange = requestedRange
         }
     }
 

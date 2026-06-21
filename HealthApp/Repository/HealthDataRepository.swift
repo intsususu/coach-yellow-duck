@@ -6,6 +6,9 @@ import Foundation
 protocol HealthDataRepository: AnyObject {
     /// 启动预热：splash 期间提前拉好各趋势页首屏数据。默认空操作，仅缓存装饰器实现。
     func prewarm() async
+    /// 用户主动刷新：重新从底层数据源拉取趋势缓存，并保留旧快照作为失败回退。
+    /// 默认空操作；无缓存的数据源会在页面随后的正常查询中直接返回最新数据。
+    func refreshCachedData() async
     /// 清空缓存（内存缓存 + 落盘快照），不动用户数据（事件 / 目标 / 授权）。
     /// 仅在换版本时调用，强制下次从真实数据源重新拉取。默认空操作，仅缓存装饰器实现。
     func clearCache()
@@ -41,6 +44,8 @@ protocol HealthDataRepository: AnyObject {
 extension HealthDataRepository {
     /// 默认无预热：Mock / HealthKit 直连数据源不需要，由 CachingHealthRepository 重写。
     func prewarm() async {}
+    /// 默认无缓存可刷新：Mock / HealthKit 直连数据源由页面随后的查询直接读取。
+    func refreshCachedData() async {}
     /// 默认无缓存可清：直连数据源无缓存，由 CachingHealthRepository 重写。
     func clearCache() {}
 }
