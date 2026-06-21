@@ -1,491 +1,182 @@
-# Handoff: 健康数据分析 iOS App
+# 加油吖！
 
-## Overview
+一款以体重管理为核心的 iOS 个人健康数据分析 App。它将 Apple 健康中的体重、睡眠和运动数据整理成趋势图，并把生病、损伤、饮酒、旅行等特殊事件叠加到时间轴上，帮助用户理解数据波动背后的原因。
 
-A personal health analytics app for iOS. The core use case is **weight-loss tracking with context**: the user logs weight, sleep, and exercise data (synced from Apple Health), records special events (illness, injury, drinking, travel), and sees how those events correlate with data fluctuations on charts.
+应用坚持隐私优先：HealthKit 仅读取，健康数据和分析过程均留在本机，不接入账号、云同步、第三方统计或远程日志。
 
-The design was built as a high-fidelity interactive HTML prototype. The files in this bundle are **design references** — not production code to copy directly. Your task is to **recreate these designs in SwiftUI** using Swift best practices, native components where appropriate, and the design tokens documented below.
+## 当前能力
 
-## Fidelity
+- **总览**：展示最新体重、睡眠时长、活动热量、近 30 日趋势和近期事件；支持下拉刷新。周日会根据本周数据生成「本周小结」。
+- **体重分析**：支持周、月、年、全部四种范围，展示可横向回溯的趋势、目标差距、历史统计和最近记录。
+- **运动分析**：支持周、月、6 个月范围，查看活动消耗趋势、基础代谢、运动次数、时长、心率及月度消耗。
+- **睡眠分析**：支持周、月、6 个月范围，可在睡眠质量分与睡眠阶段趋势之间切换，并分析低质量睡眠。
+- **事件记录**：记录生病、损伤、饮酒、旅行和其他事件，支持单日或时间段、编辑、删除及撤销删除。
+- **事件叠加**：事件可统一显示在体重、运动和睡眠趋势图中；点击标记或图例可查看对应事件详情。
+- **综合分析**：按近一周、近一个月、近三个月或自定义日期生成体重、运动、睡眠联合报告，并可渲染成长图分享。
+- **个人设置**：编辑头像、昵称、身高、年龄、性别和状态标签，调整目标体重，管理数据来源与事件。
+- **启动与缓存**：启动时并行预热趋势数据，使用本地快照加速冷启动；版本变化时自动清理趋势缓存。
 
-**High-fidelity.** The prototype shows final colors, typography, spacing, chart styles, and interactions. Recreate pixel-accurately. Where SwiftUI offers native equivalents (e.g. `TabView`, `sheet`, system fonts), prefer them — but match the visual output to the prototype.
+底部导航当前顺序为：**总览 / 体重 / 运动 / 睡眠 / 我的**。
 
----
+## 数据源
 
-## Design Tokens
+工程通过 `HealthDataRepository` 协议隔离数据来源，视图层不感知具体实现。
 
-### Colors
-
-```swift
-// Primary
-let colorPrimary       = Color(hex: "#2F6BFF")   // Blue — weight accent, CTAs
-let colorPrimaryDark   = Color(hex: "#1F4FD6")   // Gradient end for weight hero card
-
-// Backgrounds
-let colorAppBG         = Color(hex: "#F5F6F8")   // Main screen background
-let colorCardBG        = Color(hex: "#FFFFFF")   // Card surface
-let colorSubtleBG      = Color(hex: "#ECF0F3")   // Segmented control track
-
-// Text
-let colorTextPrimary   = Color(hex: "#1F2733")   // Headings, large numbers
-let colorTextSecondary = Color(hex: "#9AA6B4")   // Captions, labels
-let colorTextBody      = Color(hex: "#5B6675")   // Body copy
-
-// Data accents
-let colorWeight        = Color(hex: "#2F6BFF")   // Weight line + cards
-let colorSleep         = Color(hex: "#6366F1")   // Sleep bars + hero
-let colorSleepDark     = Color(hex: "#4338CA")   // Deep sleep segment
-let colorSleepLight    = Color(hex: "#A5B4FC")   // REM segment
-let colorExercise      = Color(hex: "#16A34A")   // Exercise bars + hero
-let colorGoalLine      = Color(hex: "#EA580C")   // Weight goal dashed line
-
-// Event types
-let colorEventIllness  = Color(hex: "#EF4444")   // 生病 — red
-let colorEventInjury   = Color(hex: "#EA580C")   // 损伤 — orange
-let colorEventDrink    = Color(hex: "#7C3AED")   // 饮酒 — purple
-let colorEventTravel   = Color(hex: "#0891B2")   // 旅行 — cyan
-let colorEventOther    = Color(hex: "#64748B")   // 其他 — slate
-
-// Semantic
-let colorSuccess       = Color(hex: "#16A34A")
-let colorWarning       = Color(hex: "#EA580C")
-let colorDanger        = Color(hex: "#EF4444")
-```
-
-### Typography
-
-All text uses the system font (San Francisco). **Do not import a custom font** — use `.system` with matching weights.
-
-| Role | Size | Weight | Usage |
-|---|---|---|---|
-| Screen title | 26pt | .heavy | Tab screen headings |
-| Hero number | 42–46pt | .heavy | Weight kg, Sleep hours, Kcal |
-| Hero number unit | 15pt | .medium | "kg", "小时", "千卡" |
-| Section header | 16pt | .heavy | Card section titles |
-| Card title | 14pt | .semibold | List item titles |
-| Body | 13–14pt | .regular | Descriptions, notes |
-| Caption | 11–12pt | .medium | Labels, dates, secondary info |
-| Micro | 10pt | .medium | Chart axis labels |
-
-### Corner Radius
-
-| Token | Value | Usage |
+| 运行环境 | 数据来源 | 说明 |
 |---|---|---|
-| `radiusHero` | 22pt | Hero gradient cards |
-| `radiusCard` | 20pt | Stat cards, quick-stat tiles |
-| `radiusRow` | 18pt | Settings rows, event cards |
-| `radiusChip` | 13pt | Type selector chips |
-| `radiusPill` | 999pt | Pills, tags |
-| `radiusButton` | 16pt | Primary action button |
+| iOS 模拟器（Debug） | `MockHealthRepository` | 使用内置数据，不请求 HealthKit，适合界面开发和演示 |
+| iPhone 真机 | `HealthKitRepository` | 请求 Apple 健康只读权限，读取真实体重、睡眠、活动热量、锻炼和心率数据 |
 
-### Spacing
+两种数据源外层均由 `CachingHealthRepository` 包装，负责启动预热、本地趋势快照和并发查询去重。真机首次启动会先进入 Apple 健康授权引导。
 
-Base unit = 4pt. Prefer multiples.
+## 技术栈
 
-| Token | Value |
-|---|---|
-| `spacingXS` | 4pt |
-| `spacingS` | 8pt |
-| `spacingM` | 12pt |
-| `spacingL` | 16pt |
-| `spacingXL` | 20pt |
-| `screenPadding` | 20pt (horizontal) |
-| `cardGap` | 13–14pt |
+- Swift、SwiftUI
+- Swift Charts
+- HealthKit（只读）
+- MVVM + Repository
+- async/await、`@MainActor`
+- SF Symbols、PhotosUI
+- 零第三方依赖
 
-### Shadows
+当前 Xcode 工程的部署目标为 **iOS 17.0+**，Scheme 和 Target 均为 `HealthApp`。
+
+## 运行项目
+
+### 环境要求
+
+- macOS 与 Xcode
+- iOS 17.0+ 模拟器，或支持 HealthKit 的 iPhone
+- 真机运行时需要在 Xcode 中配置自己的开发团队和签名
+
+### 打开并运行
+
+```bash
+git clone git@github.com:intsususu/coach-yellow-duck.git
+cd coach-yellow-duck
+git config core.hooksPath .githooks
+open HealthApp.xcodeproj
+```
+
+在 Xcode 中选择 `HealthApp` Scheme：
+
+1. 使用模拟器运行，可直接查看 Mock 数据和全部主要界面。
+2. 使用真机运行，按引导授予 Apple 健康读取权限。
+
+也可以在命令行验证模拟器构建：
+
+```bash
+xcodebuild \
+  -project HealthApp.xcodeproj \
+  -scheme HealthApp \
+  -destination 'generic/platform=iOS Simulator' \
+  build
+```
+
+## HealthKit 权限
+
+真机数据源仅读取以下类型：
+
+- 体重
+- 睡眠分析（深度、核心、快速眼动、清醒）
+- 活动能量与静息能量
+- 锻炼记录与锻炼时长
+- 心率
+
+工程已配置 HealthKit capability 和 `NSHealthShareUsageDescription`。授权调用不包含任何写入类型：
 
 ```swift
-// Standard card shadow
-.shadow(color: Color(hex: "#1F2733").opacity(0.10), radius: 10, x: 0, y: 5)
-
-// Hero card shadow (colored glow matching accent)
-// Weight: .shadow(color: colorPrimary.opacity(0.35), radius: 17, x: 0, y: 9)
-// Sleep:  .shadow(color: colorSleep.opacity(0.35), radius: 17, x: 0, y: 9)
-// Exercise: .shadow(color: colorExercise.opacity(0.30), radius: 17, x: 0, y: 9)
+requestAuthorization(toShare: [], read: readTypes)
 ```
 
----
+如果需要改变读取范围，必须同步检查隐私文案、Capability 和 `HealthKitRepository`，并继续保持只读。
 
-## App Structure
+## 架构
 
-```
-App
-└── ContentView
-    └── TabView (5 tabs, bottom bar)
-        ├── HomeView          (总览)
-        ├── WeightView        (体重)
-        ├── SleepView         (睡眠)
-        ├── ExerciseView      (运动)
-        └── ProfileView       (我的)
-
-Shared sheet (presented from any tab):
-    └── AddEventSheet
-```
-
-### Tab Bar
-
-5 tabs, standard iOS `TabView`. Active tab uses `colorPrimary` (#2F6BFF), inactive uses `colorTextSecondary`.
-
-| Index | Label | SF Symbol |
-|---|---|---|
-| 0 | 总览 | `square.grid.2x2` |
-| 1 | 体重 | `chart.line.uptrend.xyaxis` |
-| 2 | 睡眠 | `moon.fill` |
-| 3 | 运动 | `flame.fill` |
-| 4 | 我的 | `person.fill` |
-
----
-
-## Screens
-
-### 1. HomeView (总览)
-
-**Purpose:** Daily snapshot — current weight, sleep summary, exercise summary, recent events, insight callout.
-
-**Layout (top → bottom, 20pt horizontal padding):**
-
-#### Header row
-- Left: date string ("6月18日 星期四", caption/secondary) + greeting ("李，下午好", 25pt heavy)
-- Right: "＋ 记事件" pill button → opens `AddEventSheet`
-  - Background: `#1F2733`, text white, padding 9×14pt, radius 999pt
-  - Shadow: `rgba(31,39,51,.5)` 14pt blur −4pt y
-
-#### Weight Hero Card
-Full-width, gradient background `#2F6BFF → #1F4FD6` (150°), radius 22pt, shadow (blue glow).
-- Top-left: label "当前体重" (13pt .medium, white 82% opacity) + big number `77.1 kg` (46pt heavy white)
-- Top-right: change pill "较起点 ↓13.9" (white 16% bg, 999pt radius, 12pt semibold)
-- Middle: mini sparkline SVG (last 12 weekly points, white line + white fill gradient, 42pt tall)
-- Bottom row: "距目标 73kg · 还差 **4.1kg**" left, "查看趋势 ›" right (12pt, white 85% opacity)
-- Progress bar: white 22% bg track, white fill, height 7pt, radius 5pt
-- Tappable → navigates to WeightView tab
-
-#### Quick Stats (2-column grid, gap 13pt)
-Two equal cards (radius 20pt, white, card shadow):
-
-**Sleep card** (tappable → SleepView):
-- Accent dot + "睡眠 · 近30天" (indigo, 12pt semibold)
-- "7.3" (28pt heavy, `#1F2733`) + "h/晚" (13pt secondary)
-- "效率 95% · 良好" (12pt, `colorSuccess`)
-
-**Exercise card** (tappable → ExerciseView):
-- Accent dot + "运动 · 日均" (green, 12pt semibold)
-- "434" (28pt heavy) + "千卡" (13pt secondary)
-- "68分钟 · 心率121" (12pt secondary)
-
-#### Recent Events Section
-Header: "近期事件" (16pt heavy) + "＋ 记录" link (13pt `colorPrimary`)
-
-List of up to 4 most recent `HealthEvent` rows (radius 16pt, white, card shadow):
-- Left icon tile (38×38pt, radius 11pt, event bg color): rotated diamond (11×11pt, event color)
-- Center: title (14pt semibold, `colorTextPrimary`) + date + note (11.5pt secondary)
-- Right pill: type label (11pt semibold, event color on event bg, radius 999pt)
-
-#### Insight Card
-White card, radius 20pt. Header "💡 关联洞察" (13pt bold). Body text 13pt, line-height 1.65, color `#5B6675`.
-
----
-
-### 2. WeightView (体重)
-
-**Purpose:** Weight trend over time with goal line and event markers.
-
-**Layout:**
-
-#### Header row
-"体重" title (26pt heavy) + "＋" circular button (38×38pt, `colorPrimary` bg, white, radius 50%) → `AddEventSheet`
-
-#### Range Segmented Control
-Inline: 周 / 月 / 年. See "Segmented Control" component below.
-
-#### Chart Card
-White card, radius 22pt, padding 18×16pt.
-- Legend row: "体重 (kg)" left, "— 目标 73" (orange) + "◆ 事件" (red) right
-- **Line chart** (see Chart spec below): shows weight series for selected range
-  - Blue line (#2F6BFF), 2.6pt stroke, rounded caps
-  - Area fill: blue 0→22% opacity gradient
-  - Dashed orange goal line at 73kg
-  - Diamond markers (10×10pt rotated 45°) at event dates, colored by event type
-  - Last point: filled circle 4pt radius
-
-#### 2×2 Stats Grid (radius 18pt cards)
-- 较起点: −13.9 kg (green, 24pt heavy)
-- 距目标: 4.1 kg (24pt heavy)
-- 历史最低: 71.9 kg
-- 历史最高: 91.2 kg
-
-#### Event Impact Card
-Pink-tinted card (`#FDECEC` bg, `#F6C9C9` border, radius 18pt). Shows most relevant recent event with its impact note.
-
----
-
-### 3. SleepView (睡眠)
-
-**Purpose:** Sleep duration and stage breakdown.
-
-**Layout:**
-
-#### Header row
-"睡眠" title + "＋" button (indigo bg `#6366F1`)
-
-#### Sleep Hero Card
-Gradient `#5B5FF0 → #4338CA` (150°), radius 22pt, indigo shadow.
-- Left: "平均睡眠 · 近30天" + "7.3 小时" (42pt heavy white)
-- Right: "效率 95%" pill + "夜醒 8.3 次"
-- Stage progress bar (13pt tall, radius 7pt):
-  - Deep sleep 8.9% → `#312E81`
-  - Core 64.3% → `#6366F1`
-  - REM 21.7% → `#A5B4FC`
-  - Awake 5% → `#E0E7FF`
-- Stage labels below bar: 深睡 / 核心 / REM / 清醒 (10.5pt, white 85% opacity)
-
-#### 2-column Stats
-- 深睡 日均: **41分** (22pt heavy, `#312E81`) + "偏少 · 建议↑" (red caption)
-- REM 日均: **100分** (indigo) + "正常区间" (green caption)
-
-#### Bar Chart Card (每晚时长)
-White card, radius 22pt. Header "每晚时长" + range picker (7天/14天).
-- Vertical bars for each night (minutes), `colorSleep` fill
-- Bars during travel period: `#A5B4FC` (lighter indigo)
-- Event marker diamond above bar on drink night
-
-#### Event Impact Card
-Purple-tinted (`#F3EEFC`, `#E0D2F7` border). Shows drink/travel event impact.
-
----
-
-### 4. ExerciseView (运动)
-
-**Purpose:** Exercise frequency, calorie burn, and activity types.
-
-**Layout:**
-
-#### Header row
-"运动" title + "＋" button (green bg `#16A34A`)
-
-#### Exercise Hero Card
-Gradient `#1BB15C → #15803D` (150°), radius 22pt, green shadow.
-- Left: "日均消耗 · 近30天" + "434 千卡" (42pt heavy white)
-- Right: "月均 27.5 次" pill + "约 15 天/月"
-- Summary line: "主要在**中午**运动 · **有氧**占 66% · 累计燃脂约 5.1kg"
-
-#### 3-column Stats Grid (radius 18pt)
-- 日均时长: 68分
-- 有氧心率: 121 bpm
-- 累计千卡: 39.5千
-
-#### Bar Chart Card (近6个月)
-White card, radius 22pt. Header "近 6 个月" + metric picker (消耗/心率).
-- Green bars (`#16A34A`) for kcal mode, teal (`#0D9488`) for HR mode
-- Orange diamond marker on injury month (May)
-
-#### Event Impact Card
-Orange-tinted (`#FDF1EA`, `#F6D6BF` border). Shows injury event impact.
-
----
-
-### 5. ProfileView (我的)
-
-**Purpose:** User profile, goal settings, data source config, settings.
-
-**Layout:**
-
-#### Profile Header
-Avatar circle (60×60pt, gradient blue, first initial 24pt heavy white) + name + stats line.
-
-#### Goal Card
-Blue-tinted card (`#EEF4FF` bg, `#CFE0FF` border, radius 20pt).
-- "目标体重" label + "编辑" button → opens `AddEventSheet` (or future goal-edit sheet)
-- "73.0 kg" (30pt heavy blue) + "还差 4.1kg" (green)
-- Progress bar (9pt, blue fill on light blue track)
-
-#### Settings Groups (radius 18pt, white)
-Group 1: 数据来源 (Apple 健康 ✓) / 单位 / 每日提醒  
-Group 2 (tappable row): ＋ 记录特殊事件  
-Group 3: 导出数据 / 关于
-
----
-
-## Components
-
-### Segmented Control
-
-Native-style inline picker. Use `Picker` with `.segmented` style or custom implementation.
-
-```swift
-// 3 options: 周/月/年 (weight), 7天/14天 (sleep), 消耗/心率 (exercise)
-// Track: #ECF0F3, radius 11pt, padding 3pt
-// Active chip: white bg, radius 8pt, shadow, accent-colored text, .bold
-// Inactive: transparent bg, secondary text color, .medium
-// Height: ~34pt total
+```text
+SwiftUI View
+    ↓
+ViewModel / AppState
+    ↓
+HealthDataRepository
+    ↓
+CachingHealthRepository
+    ├── MockHealthRepository       模拟器数据
+    └── HealthKitRepository        真机健康数据
+            └── EventRepository    本机事件
 ```
 
-### Event Diamond Marker (chart overlay)
+- `AppState` 管理全局目标体重、事件、Tab、Toast、授权引导和综合分析导航。
+- 事件是全局单一数据源；各趋势页只读取事件进行图表叠加，写入集中在事件模块。
+- 所有健康数据查询均经 Repository；视图不直接访问 HealthKit。
+- 趋势快照保存在 Application Support，用于冷启动快速回显。
+- 用户资料、头像和事件只保存在本机。
 
-A 10×10pt `Rectangle` rotated 45°, filled with the event's color, positioned above the corresponding bar/point on the chart.
+## 目录结构
 
-### AddEventSheet (Bottom Sheet)
-
-Presented modally as a `.sheet` from any screen.
-
-**Content (top → bottom):**
-1. Drag handle (40×5pt, radius 3pt, `#D3D8DF`, centered)
-2. Header: "记录特殊事件" (20pt heavy) + close button (30×30pt, `#E8EBF0` bg)
-3. **类型** label + type chip row (5 options: 生病/损伤/饮酒/旅行/其他)
-   - Each chip: diamond icon (9×9pt rotated 45°) + label, border radius 13pt
-   - Selected: event color border + event bg fill + bold text
-   - Unselected: `#E2E6EC` border + white bg
-4. **标题** label + `TextField` (radius 14pt, white bg, `#E2E6EC` border 1.5pt, 15pt text)
-5. **日期** label + 3 date chips (今天/昨天/前天), pill-style, same selected/unselected logic as type chips
-6. **备注** label + `TextEditor` 3 rows (same style as TextField)
-7. Info banner (blue tinted, `#EEF4FF`, 📈 icon + hint text)
-8. "保存事件" primary button (full-width, radius 16pt, `colorPrimary` bg, white 16pt bold, blue glow shadow)
-
-**On save:** dismiss sheet + show toast notification for 2.2 seconds.
-
-### Toast
-
-Centered at bottom of screen (above tab bar), pill shape. `#1F2733` bg, white text, 14pt semibold. Animate in with scale+fade, auto-dismiss after 2.2s.
-
----
-
-## Interactions & Behavior
-
-| Trigger | Action |
-|---|---|
-| Tap weight hero card | Switch to 体重 tab |
-| Tap sleep quick-stat | Switch to 睡眠 tab |
-| Tap exercise quick-stat | Switch to 运动 tab |
-| Tap "＋ 记事件" (any screen) | Present `AddEventSheet` |
-| Tap type chip | Select type, update chip styles |
-| Tap date chip | Select date |
-| Tap "保存事件" | Append event to list, dismiss sheet, show toast |
-| Tap range control (周/月/年) | Switch chart data series, animate transition |
-| Tap metric control (消耗/心率) | Switch exercise chart metric |
-| Scroll | Standard iOS momentum scroll, no bounce clipping |
-
-### Transitions
-- Tab switch: `.easeInOut(duration: 0.2)` fade
-- Sheet: standard iOS `.sheet` (slide up)
-- Toast: fade + translateY(8pt) in, fade out after 2.2s
-
----
-
-## Charts
-
-Charts should be implemented with **Swift Charts** (iOS 16+).
-
-### Weight Line Chart
-
-```swift
-// Data: [WeightEntry] (date, kg)
-// Range options: weekly (last 16 pts) / monthly (last 12 months) / yearly (all years)
-// 
-// Marks:
-// 1. AreaMark — x: date, yStart: minKg, y: kg — fill blue opacity gradient
-// 2. LineMark — x: date, y: kg — stroke #2F6BFF, width 2.6
-// 3. RuleMark — y: goalKg — stroke #EA580C dashed
-// 4. PointMark at last data point — filled circle
-// 5. For each event in date range:
-//    AnnotationMark or PointMark at event.date — rotated diamond, event color
-//
-// X axis: show 3 labels (first, mid, last), format as "M月"
-// Y axis: hidden (value shown in stat cards)
-// Animation: .animation(.easeInOut, value: selectedRange)
+```text
+HealthApp/
+├── App/                 App 入口、全局状态、Tab 与启动页
+├── Models/              体重、睡眠、运动、事件及统计模型
+├── Repository/          Repository 协议、Mock、HealthKit、缓存与事件存储
+├── Features/
+│   ├── Home/            总览
+│   ├── Weight/          体重分析
+│   ├── Exercise/        运动分析
+│   ├── Sleep/           睡眠分析
+│   ├── Events/          事件编辑与时间轴
+│   ├── Analysis/        综合分析与分享报告
+│   ├── Profile/         个人资料与设置
+│   └── Import/          Apple 健康授权引导
+├── Charts/              Swift Charts 图表
+├── DesignSystem/        颜色 Token 与通用组件
+└── Assets.xcassets/     App 图标、头像与启动页资源
 ```
 
-### Sleep Bar Chart
+## 开发约定
 
-```swift
-// Data: [SleepEntry] (date, minutes)
-// Range: last 7 or 14 nights
-//
-// Marks:
-// 1. BarMark — x: date, y: minutes — fill colorSleep
-//    → travel dates: fill colorSleepLight (#A5B4FC)
-// 2. For drink event date: PointMark above bar — diamond, colorEventDrink
-//
-// X axis: show day-of-week or M/dd
-// Corner radius on bars: 4pt
+开始修改前请先阅读：
+
+1. [`AGENTS.md`](AGENTS.md)：技术约束、隐私红线与范围纪律。
+2. [`产品需求文档`](docs/最早原型图/健康数据分析App-PRD.md)：数值、颜色、文案和 Mock 数据契约。
+3. [`施工任务清单`](tasks/README.md) 及对应任务文件。
+
+关键规则：
+
+- UI 使用 SwiftUI，图表使用 Swift Charts。
+- 遵循 MVVM + Repository，不允许视图直接访问数据源。
+- 颜色统一使用 `Color+Tokens`，禁止在视图中散写十六进制颜色。
+- HealthKit 仅读不写；禁止上传健康数据或接入第三方分析 SDK。
+- 一次任务只修改一个范围，不顺手重构无关模块。
+- 未经明确要求，不推送分支、不发布、不修改 CI 或签名配置。
+
+## 版本管理
+
+版本规则详见 [`docs/VERSIONING.md`](docs/VERSIONING.md)。
+
+- 每次普通提交由 `.githooks/pre-commit` 自动增加 PATCH 和构建号，并暂存 `project.pbxproj`。
+- 独立功能准备创建 PR 时，先确认是否升级 MINOR，再运行 `./scripts/bump-minor.sh`。
+- MAJOR 版本仅在明确决定大版本升级时运行 `./scripts/bump-major.sh`。
+- 新克隆后务必执行：
+
+```bash
+git config core.hooksPath .githooks
 ```
 
-### Exercise Bar Chart
+## 设计与文档
 
-```swift
-// Data: [ExerciseMonth] (label, kcal, avgHR)
-// Metric: kcal or avgHR (toggled by segmented control)
-//
-// Marks:
-// 1. BarMark — x: month, y: value — fill colorExercise (kcal) or #0D9488 (HR)
-// 2. For injury month: annotation diamond above bar — colorEventInjury
-//
-// Corner radius: 4pt
-// Animation on metric change: .animation(.easeInOut, value: selectedMetric)
-```
+- [`产品需求文档`](docs/最早原型图/健康数据分析App-PRD.md)
+- [`高保真离线原型`](docs/最早原型图/健康App-高保真原型-离线版.html)
+- [`线框图`](docs/最早原型图/健康数据分析App-线框图.html)
+- [`综合分析报告设计`](docs/综合分析报告/综合分析报告设计.md)
+- [`综合分析报告原型`](docs/综合分析报告/prototype.html)
+- [`睡眠质量评分设计`](docs/睡眠质量评分设计.md)
+- [`设计验收记录`](docs/design-qa.md)
+- [`任务拆分`](tasks/README.md)
 
----
+## 隐私说明
 
-## State Management
-
-Use a single `@StateObject HealthStore: ObservableObject` at app level, injected via `.environmentObject`.
-
-```swift
-class HealthStore: ObservableObject {
-    @Published var events: [HealthEvent] = HealthEvent.mockData
-    @Published var weightEntries: [WeightEntry] = WeightEntry.mockData
-    @Published var sleepEntries: [SleepEntry] = SleepEntry.mockData
-    @Published var exerciseMonths: [ExerciseMonth] = ExerciseMonth.mockData
-
-    // Derived
-    var latestWeight: Double { weightEntries.last?.kg ?? 0 }
-    var goalWeight: Double = 73.0
-    var distToGoal: Double { latestWeight - goalWeight }
-    var progressPct: Double { ... }
-
-    func addEvent(_ event: HealthEvent) {
-        events.insert(event, at: 0)
-    }
-}
-```
-
-Per-screen local state (range selector, sheet visibility) stays `@State` inside the view.
-
----
-
-## Mock Data
-
-See `DataModels.swift` in this folder for Swift struct definitions and complete mock data matching the prototype exactly.
-
-**Data summary:**
-- Weight: 150+ weekly entries 2019–2026, monthly and yearly aggregations
-- Sleep: 14 nightly entries (June 4–17, 2026), stage breakdown
-- Exercise: 6 months kcal + avg HR (Jan–Jun 2026)
-- Events: 4 pre-seeded (出差·上海, 饮酒·聚餐, 感冒发烧, 腰肌肉拉伤)
-
----
-
-## Assets
-
-No custom images. All icons use SF Symbols. Charts are rendered natively via Swift Charts.
-
----
-
-## Files in This Bundle
-
-| File | Description |
-|---|---|
-| `README.md` | This document — full design spec |
-| `DataModels.swift` | Swift structs + mock data, ready to drop in |
-| `健康App-高保真原型.html` | Interactive HTML prototype — open in browser for visual reference |
-
----
-
-## Development Order (Recommended)
-
-1. **Project scaffold** — App entry, `TabView`, `HealthStore`, color/font extensions
-2. **WeightView** — Line chart + range picker + event markers (most complex chart)
-3. **HomeView** — Aggregates from store, sparkline, event list
-4. **SleepView** — Bar chart + stage breakdown
-5. **ExerciseView** — Bar chart + metric toggle
-6. **AddEventSheet** — Shared modal, type chips, save to store
-7. **ProfileView** — Goal card + settings rows
-8. **Apple Health integration** — Replace mock data with `HKHealthStore` queries
+- 健康数据只在设备本机读取、缓存和分析。
+- 应用不会向 Apple 健康写入任何数据。
+- 应用不包含账号体系、云同步、第三方埋点或远程日志。
+- iCloud 同步、导出、提醒、Widget 和 Apple Watch 均不在当前版本范围内。
