@@ -17,8 +17,8 @@ struct ExerciseView: View {
     /// 点击图例时选中的基础类型；与图上单条事件选中互斥。
     @State private var selectedLegendType: EventType?
 
-    /// 月度消耗口径：活动 / 运动，默认「运动」。
-    @State private var monthlyMetric: ExerciseMetric = .workout
+    /// 月度消耗口径：活动 / 运动，默认「活动」。
+    @State private var monthlyMetric: ExerciseMetric = .activity
     /// 月度消耗图可视窗口左沿；驱动横向回溯定位。
     @State private var monthlyScroll = Date()
 

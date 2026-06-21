@@ -328,7 +328,7 @@ struct AboutView: View {
                         .shadow(color: .black.opacity(0.1), radius: 10, y: 4)
                         .padding(.top, 24)
 
-                    Text("自律小黄鸡")
+                    Text("加油吖！")
                         .font(.system(size: 20, weight: .heavy))
                         .foregroundColor(.textPrimary)
                     Text(version)
@@ -337,7 +337,7 @@ struct AboutView: View {
 
                     CardView(padding: 0) {
                         VStack(spacing: 0) {
-                            aboutRow(title: "App 名称", value: "自律小黄鸡")
+                            aboutRow(title: "App 名称", value: "加油吖！")
                             Divider().background(Color.hairline).padding(.leading, 16)
                             aboutRow(title: "版本", value: version)
                             Divider().background(Color.hairline).padding(.leading, 16)

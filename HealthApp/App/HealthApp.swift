@@ -22,6 +22,7 @@ enum AppConfig {
 @main
 struct HealthApp: App {
     @StateObject private var appState: AppState
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         let base: HealthDataRepository
@@ -40,6 +41,10 @@ struct HealthApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
+                // 全局兜底底色：导航转场（边缘右滑返回）时，
+                // 防止底层导航容器露出系统白色，统一为 App 底色。
+                Color.appBg.ignoresSafeArea()
+
                 Group {
                     if appState.isImportPresented {
                         ImportView()
@@ -58,6 +63,10 @@ struct HealthApp: App {
             }
             .animation(.easeOut(duration: 0.35), value: appState.isInitialLoadComplete)
             .task { await appState.startUp() }
+            // 退后台超时（≥30 分钟）回前台时重走启动页；换版本由 startUp 内清缓存。
+            .onChange(of: scenePhase) { _, phase in
+                appState.handleScenePhase(phase)
+            }
         }
     }
 }

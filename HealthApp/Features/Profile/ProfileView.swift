@@ -13,6 +13,7 @@ struct ProfileView: View {
     @State private var showsEventTimeline = false
     @State private var showsAbout = false
     @State private var showsHealthImport = false
+    @State private var showsAnalysis = false
     @State private var currentWeight: Double?
 
     /// 沉浸式渐变高度：顶部主色渐隐到页面底色，约过渡到屏幕中部。
@@ -64,6 +65,9 @@ struct ProfileView: View {
             .navigationDestination(isPresented: $showsHealthImport) {
                 // 管理页：可经系统返回按钮与左缘右滑返回；再次点击连接按钮跳转系统设置管理权限。
                 ImportView(isOnboarding: false)
+            }
+            .navigationDestination(isPresented: $showsAnalysis) {
+                AnalysisRangePickerView(repository: appState.repository)
             }
             .task {
                 let samples = await appState.repository.weightSeries(range: .week)
@@ -166,6 +170,10 @@ struct ProfileView: View {
                 #endif
             }
             settingDivider
+            settingRow(icon: "chart.line.uptrend.xyaxis", title: "综合分析", value: "趋势/关联/建议 ›", tint: .brandBlue) {
+                showsAnalysis = true
+            }
+            settingDivider
             settingRow(icon: "square.and.arrow.down.fill", title: "体测数据导入", value: "暂未开放 ›", tint: .eventTravel) {
                 placeholderToast("体测数据导入")
             }
@@ -221,7 +229,7 @@ struct ProfileView: View {
 
     private var aboutSettings: some View {
         settingsGroup(title: "关于") {
-            settingRow(icon: "info.circle.fill", title: "关于自律小黄鸡", value: "v1.0 ›", tint: .textSecondary) {
+            settingRow(icon: "info.circle.fill", title: "关于加油吖！", value: "v1.0 ›", tint: .textSecondary) {
                 showsAbout = true
             }
         }
@@ -266,6 +274,8 @@ struct ProfileView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
+            // 让整行（含图标/文字之间的空白与 Spacer 区域）都参与点击命中。
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }

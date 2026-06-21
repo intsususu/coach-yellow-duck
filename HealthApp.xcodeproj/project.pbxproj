@@ -50,6 +50,10 @@
 		BF0000000000000000000077 /* MetricSparkline.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000076 /* MetricSparkline.swift */; };
 		BF0000000000000000000079 /* WeightStatistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000078 /* WeightStatistics.swift */; };
 		BF000000000000000000007B /* ExerciseViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE000000000000000000007A /* ExerciseViewModel.swift */; };
+		BFA000000000000000000001 /* AnalysisReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA000000000000000000001 /* AnalysisReport.swift */; };
+		BFA000000000000000000002 /* AnalysisViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA000000000000000000002 /* AnalysisViewModel.swift */; };
+		BFA000000000000000000003 /* AnalysisViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA000000000000000000003 /* AnalysisViews.swift */; };
+		BFA000000000000000000004 /* DateRangePickerSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEA000000000000000000004 /* DateRangePickerSection.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -97,6 +101,10 @@
 		FE0000000000000000000074 /* DailyMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyMetric.swift; sourceTree = "<group>"; };
 		FE0000000000000000000076 /* MetricSparkline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricSparkline.swift; sourceTree = "<group>"; };
 		FE0000000000000000000078 /* WeightStatistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightStatistics.swift; sourceTree = "<group>"; };
+		FEA000000000000000000001 /* AnalysisReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisReport.swift; sourceTree = "<group>"; };
+		FEA000000000000000000002 /* AnalysisViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisViewModel.swift; sourceTree = "<group>"; };
+		FEA000000000000000000003 /* AnalysisViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisViews.swift; sourceTree = "<group>"; };
+		FEA000000000000000000004 /* DateRangePickerSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateRangePickerSection.swift; sourceTree = "<group>"; };
 		PA0000000000000000000040 /* HealthApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HealthApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -158,6 +166,7 @@
 			children = (
 				FE0000000000000000000007 /* Color+Tokens.swift */,
 				FE0000000000000000000009 /* Components.swift */,
+				FEA000000000000000000004 /* DateRangePickerSection.swift */,
 				FE000000000000000000000B /* Toast.swift */,
 			);
 			path = DesignSystem;
@@ -166,6 +175,7 @@
 		6A0000000000000000000036 /* Features */ = {
 			isa = PBXGroup;
 			children = (
+				6AA000000000000000000001 /* Analysis */,
 				6A0000000000000000000037 /* Events */,
 				6A0000000000000000000038 /* Exercise */,
 				6A0000000000000000000039 /* Home */,
@@ -176,6 +186,16 @@
 				FE0000000000000000000019 /* PlaceholderContent.swift */,
 			);
 			path = Features;
+			sourceTree = "<group>";
+		};
+		6AA000000000000000000001 /* Analysis */ = {
+			isa = PBXGroup;
+			children = (
+				FEA000000000000000000001 /* AnalysisReport.swift */,
+				FEA000000000000000000002 /* AnalysisViewModel.swift */,
+				FEA000000000000000000003 /* AnalysisViews.swift */,
+			);
+			path = Analysis;
 			sourceTree = "<group>";
 		};
 		6A0000000000000000000037 /* Events */ = {
@@ -408,6 +428,10 @@
 				BF000000000000000000005E /* ImportView.swift in Sources */,
 				BF0000000000000000000075 /* DailyMetric.swift in Sources */,
 				BF0000000000000000000077 /* MetricSparkline.swift in Sources */,
+				BFA000000000000000000001 /* AnalysisReport.swift in Sources */,
+				BFA000000000000000000002 /* AnalysisViewModel.swift in Sources */,
+				BFA000000000000000000003 /* AnalysisViews.swift in Sources */,
+				BFA000000000000000000004 /* DateRangePickerSection.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -535,13 +559,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = HealthApp/HealthApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 64FF893SV4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "加油吖！";
 				INFOPLIST_KEY_CFBundleName = "加油吖！";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "用于读取体重、睡眠、运动与心率数据，在本机生成健康趋势分析。";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于把分析报告长图保存到你的相册。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -551,7 +576,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xltc.sdlyc;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -567,13 +592,14 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = HealthApp/HealthApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 64FF893SV4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "加油吖！";
 				INFOPLIST_KEY_CFBundleName = "加油吖！";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "用于读取体重、睡眠、运动与心率数据，在本机生成健康趋势分析。";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "用于把分析报告长图保存到你的相册。";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -583,7 +609,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xltc.sdlyc;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

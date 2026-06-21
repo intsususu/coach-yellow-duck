@@ -12,8 +12,8 @@ struct HomeView: View {
         ScrollView {
             VStack(spacing: 12) {
                 topBar
-                if Self.isSunday {
-                    weeklySummaryCard
+                if Self.isSunday, let narrative = vm.weeklyNarrative {
+                    weeklySummaryCard(narrative)
                 }
                 heroCard
                 sleepCard
@@ -27,7 +27,9 @@ struct HomeView: View {
         .sheet(isPresented: $showsEventTimeline) {
             EventTimelineView()
         }
-        .task { await vm.load(from: appState.repository) }
+        .task { await vm.load(from: appState.repository,
+                              events: appState.events,
+                              goalWeight: appState.goalWeight) }
     }
 
     // MARK: - 顶部栏
@@ -202,19 +204,17 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - 本周小结卡（仅周日展示，置顶；内容暂为模拟）
+    // MARK: - 本周小结卡（仅周日展示，置顶；内容由综合分析引擎按本周数据生成）
 
-    private var weeklySummaryCard: some View {
+    private func weeklySummaryCard(_ narrative: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("本周小结")
                 .font(.system(size: 15, weight: .bold))
                 .foregroundColor(.textPrimary)
-            Text("体重连续 4 周下降，运动负荷与睡眠时长同步走高 👍")
+            Text(narrative)
                 .font(.system(size: 13))
                 .foregroundColor(.textPrimary)
-            Text("感冒发烧那周运动暂停，体重回升 0.6kg，恢复训练后已回落。")
-                .font(.system(size: 13))
-                .foregroundColor(.textSecondary)
+                .lineSpacing(4)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
