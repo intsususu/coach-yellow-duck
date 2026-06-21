@@ -75,6 +75,7 @@ final class EventRepository: HealthDataRepository {
     func activeEnergyDailyTrend() async -> [DailyMetric] { [] }
     func basalEnergyDailyTrend() async -> [DailyMetric] { [] }
     func weightSeries(range: TimeRange) async -> [WeightSample] { [] }
+    func bodyFatSeries(range: TimeRange) async -> [BodyFatSample] { [] }
     func recentWeightRecords(limit: Int) async -> [WeightSample] { [] }
     func weightStatistics() async -> WeightStatistics { WeightStatistics() }
     func sleepSeries(range: TimeRange) async -> [SleepSample] { [] }

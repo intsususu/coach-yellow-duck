@@ -13,6 +13,9 @@ struct WeightView: View {
     private var showsEvents: Bool { appState.showsEvents }
     /// 趋势图可视窗口前沿（leading edge）；随手势滑动更新，并驱动右下角事件图例的过滤。
     @State private var scrollPosition = Date()
+    /// 体脂肪 / 体脂率两张趋势图各自独立的可视窗口前沿；与体重图共用周期，横向滚动互不影响。
+    @State private var bodyFatMassScroll = Date()
+    @State private var bodyFatPercentScroll = Date()
     /// 在图上点选的事件；非空且事件开关打开时，卡片下方展示其详情。
     @State private var selectedEvent: HealthEvent?
     /// 点击图例时选中的基础类型；与图上单条事件选中互斥。
@@ -26,6 +29,8 @@ struct WeightView: View {
                     chartCard
                     eventDetailCard
                     statisticsCard
+                    bodyFatMassCard
+                    bodyFatPercentCard
                     recentRecordsCard
                 }
                 .padding(.horizontal, 16)
@@ -48,6 +53,7 @@ struct WeightView: View {
                 transaction.animation = nil
                 withTransaction(transaction) {
                     resetScrollToLatest(for: requestedRange)
+                    resetBodyFatScroll(for: requestedRange)
                     chartRange = requestedRange
                 }
             }
@@ -78,6 +84,7 @@ struct WeightView: View {
         transaction.animation = nil
         withTransaction(transaction) {
             resetScrollToLatest(for: requestedRange)
+            resetBodyFatScroll(for: requestedRange)
             chartRange = requestedRange
         }
     }
@@ -292,6 +299,70 @@ struct WeightView: View {
         }
     }
 
+    /// 体脂肪趋势（kg）：实线、玫红。变化小，故用矮版图表区。
+    private var bodyFatMassCard: some View {
+        TrendChartCard(title: "体脂肪趋势",
+                       accent: .bodyFatPink,
+                       background: .cardBg,
+                       isLoading: viewModel.isLoading,
+                       isEmpty: viewModel.bodyFatSamples.isEmpty,
+                       emptyText: "暂无体脂数据",
+                       chartHeight: TrendCardSpec.compactChartHeight) {
+            BodyFatChart(samples: viewModel.bodyFatSamples,
+                         value: { $0.fatMassKg },
+                         range: chartRange,
+                         scrollPosition: $bodyFatMassScroll,
+                         color: .bodyFatPink,
+                         dashed: false,
+                         valueFormat: "%.1f")
+                // 每个范围使用独立 Charts 实例，不沿用上一范围的坐标轴和滚动内部状态。
+                .id(chartRange)
+        } legend: {
+            bodyFatLegend(color: .bodyFatPink, title: "体脂肪 (kg)", dashed: false)
+        }
+    }
+
+    /// 体脂率趋势（%）：虚线、浅粉。同样用矮版图表区。
+    private var bodyFatPercentCard: some View {
+        TrendChartCard(title: "体脂率趋势",
+                       accent: .bodyFatPinkSoft,
+                       background: .cardBg,
+                       isLoading: viewModel.isLoading,
+                       isEmpty: viewModel.bodyFatSamples.isEmpty,
+                       emptyText: "暂无体脂数据",
+                       chartHeight: TrendCardSpec.compactChartHeight) {
+            BodyFatChart(samples: viewModel.bodyFatSamples,
+                         value: { $0.fatPercent },
+                         range: chartRange,
+                         scrollPosition: $bodyFatPercentScroll,
+                         color: .bodyFatPinkSoft,
+                         dashed: true,
+                         valueFormat: "%.1f%%")
+                .id(chartRange)
+        } legend: {
+            bodyFatLegend(color: .bodyFatPinkSoft, title: "体脂率 (%)", dashed: true)
+        }
+    }
+
+    private func bodyFatLegend(color: Color, title: String, dashed: Bool) -> some View {
+        HStack(spacing: 5) {
+            LegendLineSwatch(color: color, dashed: dashed)
+                .frame(width: 16, height: 2)
+            Text(title)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(.textSecondary)
+        }
+    }
+
+    private func resetBodyFatScroll(for range: TimeRange) {
+        guard let last = viewModel.bodyFatSamples.map(\.date).max(),
+              let seconds = range.visibleDomainSeconds else { return }
+        // 与体重图同比例的右端留白，最后一个圆点不再贴边被裁。
+        let aligned = last.addingTimeInterval(seconds * WeightChart.trailingPadFactor - seconds)
+        bodyFatMassScroll = aligned
+        bodyFatPercentScroll = aligned
+    }
+
     private func statistic(title: String, value: Double?, color: Color) -> some View {
         VStack(spacing: 5) {
             Text(title)
@@ -356,5 +427,23 @@ struct WeightView: View {
     private static func weightText(_ value: Double?) -> String {
         guard let value else { return "--" }
         return String(format: "%.1f", value)
+    }
+}
+
+/// 图例线段样式：实线或虚线的小色条，供体脂图例区分两张趋势图。
+private struct LegendLineSwatch: View {
+    let color: Color
+    let dashed: Bool
+
+    var body: some View {
+        GeometryReader { geo in
+            Path { path in
+                let midY = geo.size.height / 2
+                path.move(to: CGPoint(x: 0, y: midY))
+                path.addLine(to: CGPoint(x: geo.size.width, y: midY))
+            }
+            .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round,
+                                              dash: dashed ? [3, 2] : []))
+        }
     }
 }
