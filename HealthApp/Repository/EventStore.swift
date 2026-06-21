@@ -90,17 +90,17 @@ final class EventRepository: HealthDataRepository {
 extension EventStore {
     /// 初始 4 条事件（原样取自 PRD §6.2）。
     static let defaultSeed: [HealthEvent] = [
-        HealthEvent(id: "e1", type: .travel,  title: "出差 · 上海",
+        HealthEvent(id: "e1", type: .travel,
                     startDate: HealthEvent.date("2026-06-10"), endDate: HealthEvent.date("2026-06-14"),
-                    note: "作息紊乱，运动暂停"),
-        HealthEvent(id: "e2", type: .drink,   title: "饮酒 · 聚餐",
+                    note: "出差 · 上海，作息紊乱，运动暂停"),
+        HealthEvent(id: "e2", type: .drink,
                     startDate: HealthEvent.date("2026-06-07"), endDate: nil,
-                    note: "深睡下降，效率降到 88%"),
-        HealthEvent(id: "e3", type: .illness, title: "感冒发烧",
+                    note: "聚餐，深睡下降，效率降到 88%"),
+        HealthEvent(id: "e3", type: .illness,
                     startDate: HealthEvent.date("2026-05-31"), endDate: nil,
-                    note: "已就医，停训一周，体重回升 0.6kg"),
-        HealthEvent(id: "e4", type: .illness, title: "腰肌肉拉伤",
+                    note: "感冒发烧，已就医，停训一周，体重回升 0.6kg"),
+        HealthEvent(id: "e4", type: .illness,
                     startDate: HealthEvent.date("2026-05-20"), endDate: HealthEvent.date("2026-05-27"),
-                    note: "停训一周，周消耗降到平时 1/3"),
+                    note: "腰肌肉拉伤，停训一周，周消耗降到平时 1/3"),
     ]
 }

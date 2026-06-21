@@ -190,7 +190,7 @@ final class AppState: ObservableObject {
         // 整体替换 @Published 数组，立即、明确地通知所有已存活 Tab 重绘图表。
         events = updatedEvents
         await repository.saveEvent(event)
-        showToast(isNew ? "已记录：\(event.title)" : "已更新：\(event.title)")
+        showToast(isNew ? "已记录：\(event.type.label)" : "已更新：\(event.type.label)")
     }
 
     /// 删除事件：从仓库与全局数据源移除。不弹 Toast，由事件页内联「撤销删除」承接。
@@ -205,6 +205,6 @@ final class AppState: ObservableObject {
         if !events.contains(where: { $0.id == event.id }) {
             events.insert(event, at: 0)
         }
-        showToast("已恢复：\(event.title)")
+        showToast("已恢复：\(event.type.label)")
     }
 }

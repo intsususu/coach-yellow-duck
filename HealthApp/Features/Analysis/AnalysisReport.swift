@@ -264,7 +264,7 @@ struct AnalysisReportEngine {
 
         // 运动相关事件（如出差、感冒）可能解释同期波动，作为补充句。
         if let event = currentEvents.first(where: { $0.type.isExerciseRelated }) {
-            sentence += "；其间「\(event.title)」覆盖 \(eventDuration(event)) 天，可能是同期波动的原因"
+            sentence += "；其间「\(event.type.label)」覆盖 \(eventDuration(event)) 天，可能是同期波动的原因"
         }
 
         switch sentiment {
@@ -518,7 +518,7 @@ struct AnalysisReportEngine {
         if let event = currentEvents.first(where: { $0.type.isExerciseRelated }) {
             let duration = eventDuration(event)
             result.append(AnalysisInsight(systemImage: event.type.sfSymbol,
-                                          title: event.title,
+                                          title: event.type.label,
                                           detail: "该事件覆盖 \(duration) 天，可能解释同期运动中断或体重波动，属于正常起伏，恢复后跟上即可。",
                                           tone: .warning))
         }

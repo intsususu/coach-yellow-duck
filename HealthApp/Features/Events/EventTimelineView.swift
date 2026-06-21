@@ -243,7 +243,7 @@ private struct EventTimelineRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
-                    Text(event.title)
+                    Text(event.type.label)
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.textPrimary)
                         .lineLimit(1)

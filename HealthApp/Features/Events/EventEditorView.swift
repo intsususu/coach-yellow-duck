@@ -14,7 +14,6 @@ struct EventEditorView: View {
     @State private var isPeriod: Bool
     @State private var startDate: Date
     @State private var endDate: Date
-    @State private var title: String
     @State private var note: String
     @State private var isSaving = false
 
@@ -25,7 +24,6 @@ struct EventEditorView: View {
         _isPeriod = State(initialValue: event?.isPeriod ?? false)
         _startDate = State(initialValue: event?.startDate ?? defaultDate)
         _endDate = State(initialValue: event?.endDate ?? event?.startDate ?? defaultDate)
-        _title = State(initialValue: event?.title ?? "")
         _note = State(initialValue: event?.note ?? "")
     }
 
@@ -38,7 +36,6 @@ struct EventEditorView: View {
                     typeSection
                     durationSection
                     dateSection
-                    titleSection
                     noteSection
                     hintBanner
                 }
@@ -138,15 +135,7 @@ struct EventEditorView: View {
         }
     }
 
-    // MARK: - 标题 / 备注
-
-    private var titleSection: some View {
-        fieldGroup(title: "标题（可选）") {
-            TextField(type.label, text: $title)
-                .font(.system(size: 15))
-                .foregroundColor(.textPrimary)
-        }
-    }
+    // MARK: - 备注
 
     private var noteSection: some View {
         fieldGroup(title: "备注") {
@@ -191,11 +180,9 @@ struct EventEditorView: View {
     private func save() {
         guard !isSaving else { return }
         isSaving = true
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let event = HealthEvent(
             id: editingEvent?.id ?? UUID().uuidString,
             type: type,
-            title: trimmedTitle.isEmpty ? type.label : trimmedTitle,
             startDate: startDate,
             endDate: isPeriod ? max(endDate, startDate) : nil,
             note: note.trimmingCharacters(in: .whitespacesAndNewlines)

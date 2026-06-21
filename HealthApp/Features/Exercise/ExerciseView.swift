@@ -190,7 +190,7 @@ struct ExerciseView: View {
                             .frame(width: 38, height: 38)
                             .background(Circle().fill(event.type.color.opacity(0.16)))
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("\(Self.eventDateText(for: event)) · \(event.title)")
+                            Text("\(Self.eventDateText(for: event)) · \(event.type.label)")
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundColor(.textPrimary)
                                 .lineLimit(2)
