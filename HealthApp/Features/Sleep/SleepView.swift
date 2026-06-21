@@ -576,7 +576,7 @@ struct SleepView: View {
 
                         VStack(alignment: .leading, spacing: 5) {
                             HStack(spacing: 7) {
-                                Text(event.title)
+                                Text(event.type.label)
                                     .font(.system(size: 14, weight: .bold))
                                     .foregroundColor(.textPrimary)
                                     .lineLimit(1)

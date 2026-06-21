@@ -1,5 +1,6 @@
 // RecentEventRow.swift
-// 近期事件列表行：类型色点 + 标题 + 日期（单日/时间段）。
+// 近期事件列表行：类型图标 + 类型名 + 日期（单日/时间段）；下一行灰色小字显示备注。
+// 不论是否有备注，每行高度恒定（无备注时第二行用占位空格撑开）。
 
 import SwiftUI
 
@@ -8,22 +9,32 @@ struct RecentEventRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Circle()
-                .fill(event.type.color)
-                .frame(width: 8, height: 8)
+            Image(systemName: event.type.sfSymbol)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(event.type.color)
+                .frame(width: 34, height: 34)
+                .background(Circle().fill(event.type.color.opacity(0.16)))
 
-            Text(event.title)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.textPrimary)
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 8) {
+                    Text(event.type.label)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.textPrimary)
+                    Text(Self.dateText(for: event))
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.textSecondary)
+                }
+                // 备注最多 2 行；无备注时用空格占位。固定预留 2 行高度，保证各行等高。
+                Text(event.note.isEmpty ? " " : event.note)
+                    .font(.system(size: 12))
+                    .foregroundColor(.textSecondary)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, minHeight: 32, alignment: .topLeading)
+            }
 
-            Spacer()
-
-            Text(Self.dateText(for: event))
-                .font(.system(size: 13))
-                .foregroundColor(.textSecondary)
+            Spacer(minLength: 0)
         }
-        .padding(.vertical, 6)
+        .frame(height: 56)
     }
 
     private static let dayFormatter: DateFormatter = {
