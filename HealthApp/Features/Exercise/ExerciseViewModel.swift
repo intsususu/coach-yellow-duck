@@ -15,8 +15,9 @@ final class ExerciseViewModel: ObservableObject {
     private var hasLoadedDaily = false
     private var hasLoadedMonthly = false
 
-    func loadDailyIfNeeded(from repository: HealthDataRepository) async {
-        guard !hasLoadedDaily else { return }
+    func loadDailyIfNeeded(from repository: HealthDataRepository,
+                           forceReload: Bool = false) async {
+        guard forceReload || !hasLoadedDaily else { return }
         hasLoadedDaily = true
         isDailyLoading = true
 
@@ -27,8 +28,9 @@ final class ExerciseViewModel: ObservableObject {
         isDailyLoading = false
     }
 
-    func loadMonthlyIfNeeded(from repository: HealthDataRepository) async {
-        guard !hasLoadedMonthly else { return }
+    func loadMonthlyIfNeeded(from repository: HealthDataRepository,
+                             forceReload: Bool = false) async {
+        guard forceReload || !hasLoadedMonthly else { return }
         hasLoadedMonthly = true
         isMonthlyLoading = true
 

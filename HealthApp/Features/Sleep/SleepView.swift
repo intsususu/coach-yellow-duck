@@ -37,6 +37,7 @@ struct SleepView: View {
                 .animation(.easeInOut(duration: 0.2), value: selectedEvent)
                 .animation(.easeInOut(duration: 0.2), value: selectedLegendType)
             }
+            .refreshable { await refresh() }
             .background(Color.appBg.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .task {
@@ -65,6 +66,15 @@ struct SleepView: View {
                 isLowQualityAnalysisExpanded = false
             }
         }
+    }
+
+    private func refresh() async {
+        clearEventSelection()
+        await appState.repository.refreshCachedData()
+        await appState.loadInitialData()
+        await loadSamples()
+        guard !Task.isCancelled else { return }
+        resetScrollToLatest()
     }
 
     private var rangePicker: some View {
