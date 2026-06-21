@@ -6,6 +6,9 @@ import Foundation
 protocol HealthDataRepository: AnyObject {
     /// 启动预热：splash 期间提前拉好各趋势页首屏数据。默认空操作，仅缓存装饰器实现。
     func prewarm() async
+    /// 清空缓存（内存缓存 + 落盘快照），不动用户数据（事件 / 目标 / 授权）。
+    /// 仅在换版本时调用，强制下次从真实数据源重新拉取。默认空操作，仅缓存装饰器实现。
+    func clearCache()
     /// 请求数据源所需授权。Mock 为空操作，HealthKit 只申请读取权限。
     func requestAuthorization() async throws
     /// 首页指标卡当日数：当日睡眠时长 + 健身环锻炼分钟/活动热量及其目标。
@@ -38,4 +41,6 @@ protocol HealthDataRepository: AnyObject {
 extension HealthDataRepository {
     /// 默认无预热：Mock / HealthKit 直连数据源不需要，由 CachingHealthRepository 重写。
     func prewarm() async {}
+    /// 默认无缓存可清：直连数据源无缓存，由 CachingHealthRepository 重写。
+    func clearCache() {}
 }

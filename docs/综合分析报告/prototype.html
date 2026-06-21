@@ -39,7 +39,7 @@
   .pickTitle{font-size:20px; font-weight:700; margin:6px 4px 2px;}
   .pickDesc{font-size:13px; color:var(--t2); margin:0 4px 18px; line-height:1.6;}
   .chips{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px;}
-  .chip{flex:1 0 44%; text-align:center; padding:14px 0; border-radius:14px; border:1.5px solid var(--hair); background:#fff; font-size:14px; font-weight:600; cursor:pointer;}
+  .chip{flex:1 0 28%; text-align:center; padding:14px 0; border-radius:14px; border:1.5px solid var(--hair); background:#fff; font-size:14px; font-weight:600; cursor:pointer;}
   .chip.on{border-color:var(--brand); background:#eef4fd; color:var(--brand);}
   .rangeBox{background:#fff; border:1px solid var(--hair); border-radius:14px; padding:14px; margin-bottom:14px;}
   .rangeRow{display:flex; justify-content:space-between; align-items:center; font-size:14px; padding:8px 2px;}
@@ -56,14 +56,19 @@
   .metric{flex:1; border-radius:10px; padding:9px; text-align:center;}
   .metric .v{font-size:15px; font-weight:600;}
   .metric .k{font-size:10px; color:var(--t3); margin-top:1px;}
-  .summaryText{font-size:12px; color:var(--t2); line-height:1.75; margin-top:12px;}
-  .chickHead{display:flex; align-items:center; gap:10px;}
-  .chickHead .av{width:40px; height:40px; border-radius:50%; background:#fef3c7; display:flex; align-items:center; justify-content:center; font-size:22px; flex:none;}
-  .chickHead .ln{font-size:14px; font-weight:600; line-height:1.5;}
+  .summaryText{font-size:12px; color:var(--t2); line-height:1.75; margin-top:10px;}
+  .conversationCard{padding:15px;}
+  .duckByline{display:flex; align-items:center; gap:9px; margin-bottom:10px;}
+  .duckAvatar{width:40px; height:40px; border-radius:12px; object-fit:cover; flex:none; box-shadow:0 2px 7px rgba(146,103,12,.16);}
+  .speaker{font-size:13px; font-weight:600; line-height:1.45;}
+  .speaker span{display:block; font-size:10px; font-weight:400; color:var(--t3);}
+  .duckSays{background:#fffaeb; border:1px solid #fce9b8; border-left:3px solid #efbd3e; border-radius:5px 14px 14px 5px; padding:12px; text-align:left;}
+  .duckSays .ln{font-size:14px; font-weight:600; line-height:1.5;}
 
   /* soup */
   .soup{background:#fffaeb; border:1px solid #fce9b8; border-radius:16px; padding:16px; margin-bottom:12px;}
   .soup .hd{display:flex; align-items:center; gap:8px; font-size:12px; font-weight:600; color:#92670c;}
+  .soupAvatar{width:24px; height:24px; border-radius:7px; object-fit:cover;}
   .soup .body{font-family:Georgia,"Songti SC",serif; font-size:14px; color:var(--t1); line-height:1.9; margin-top:10px; min-height:74px;}
   .soup .foot{margin-top:10px; font-size:11px; color:#b88a1e; text-align:right; cursor:pointer; user-select:none;}
   .tagPos{font-size:10px; color:#16653a; background:#e7f6ec; padding:2px 8px; border-radius:8px;}
@@ -77,7 +82,7 @@
   <button data-sc="up" class="on" onclick="setScenario('up')">进步期</button>
   <button data-sc="down" onclick="setScenario('down')">反弹期</button>
   <button data-sc="flat" onclick="setScenario('flat')">平稳期</button>
-  <span style="font-size:11px;color:var(--t3)">← 切换看报告与鸡汤如何随数据变化</span>
+  <span style="font-size:11px;color:var(--t3)">← 切换看报告与寄语如何随数据变化</span>
 </div>
 
 <div class="phone">
@@ -93,18 +98,17 @@
     <div class="scroll">
       <div class="pickWrap">
         <div class="pickTitle">选择分析区间</div>
-        <p class="pickDesc">选一段时间，小鸡帮你把这段日子里的减脂、运动、睡眠拉到一起复盘。最长支持 3 个月。</p>
+        <p class="pickDesc">选一段时间，小鸭帮你把这段日子里的减脂、运动、睡眠拉到一起复盘。最长支持 3 个月。</p>
         <div class="chips" id="presetChips">
-          <div class="chip" data-days="30" onclick="pickPreset(30)">近 1 个月</div>
-          <div class="chip on" data-days="60" onclick="pickPreset(60)">近 2 个月</div>
-          <div class="chip" data-days="90" onclick="pickPreset(90)">近 3 个月</div>
-          <div class="chip" data-days="0" onclick="pickPreset(0)">自定义</div>
+          <div class="chip" data-days="7" onclick="pickPreset(7)">近一周</div>
+          <div class="chip on" data-days="30" onclick="pickPreset(30)">近一个月</div>
+          <div class="chip" data-days="90" onclick="pickPreset(90)">近三个月</div>
         </div>
         <div class="rangeBox">
           <div class="rangeRow"><span>开始</span><input id="startDate" type="date"></div>
           <div class="rangeRow"><span>结束</span><input id="endDate" type="date"></div>
         </div>
-        <p class="hint" id="rangeHint">已选 60 天 · 区间内约有数据 54 天</p>
+        <p class="hint" id="rangeHint">已选 30 天 · 区间内约有数据 27 天</p>
         <div class="cta"><button id="confirmBtn" onclick="goReport()">生成报告</button></div>
       </div>
     </div>
@@ -119,20 +123,23 @@
         <span class="title">综合分析报告</span>
         <span class="side right" onclick="alert('导出 / 分享报告')">⤴</span>
       </div>
-      <div class="subTitle" id="reportSub">2026.04.21 – 2026.06.20 · 较上一周期对比</div>
+      <div class="subTitle" id="reportSub">2026.05.22 – 2026.06.20 · 较上一周期对比</div>
     </div>
     <div class="scroll" id="reportScroll">
       <!-- ① 概览 -->
-      <div class="card">
-        <div class="chickHead">
-          <div class="av">🐤</div>
-          <div class="ln" id="ovHead">这段时间，<br>你和我一起做到了这些 👇</div>
+      <div class="card conversationCard">
+        <div class="duckByline">
+          <img class="duckAvatar" src="../../HealthApp/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" alt="小鸭教练">
+          <div class="speaker">小鸭教练说<span>给你的周期小结</span></div>
         </div>
-        <div class="summaryText" id="ovText"></div>
-        <div class="metricRow">
-          <div class="metric" style="background:var(--weightBg)"><div class="v" id="mW" style="color:var(--weight)"></div><div class="k">体重变化</div></div>
-          <div class="metric" style="background:var(--exBg)"><div class="v" id="mF" style="color:var(--exercise)"></div><div class="k">运动频率</div></div>
-          <div class="metric" style="background:var(--sleepBg)"><div class="v" id="mS" style="color:var(--sleep)"></div><div class="k">日均睡眠</div></div>
+        <div class="duckSays">
+          <div class="ln" id="ovHead">这段时间，你和我一起做到了这些 👇</div>
+          <div class="summaryText" id="ovText"></div>
+          <div class="metricRow">
+            <div class="metric" style="background:var(--weightBg)"><div class="v" id="mW" style="color:var(--weight)"></div><div class="k">体重变化</div></div>
+            <div class="metric" style="background:var(--exBg)"><div class="v" id="mF" style="color:var(--exercise)"></div><div class="k">运动频率</div></div>
+            <div class="metric" style="background:var(--sleepBg)"><div class="v" id="mS" style="color:var(--sleep)"></div><div class="k">日均睡眠</div></div>
+          </div>
         </div>
       </div>
 
@@ -148,11 +155,10 @@
         <div id="risksList"></div>
       </div>
 
-      <!-- ④ 鸡汤 -->
+      <!-- ④ 暖心寄语 -->
       <div class="soup">
-        <div class="hd"><span style="font-size:18px;">🐤</span> 小鸡想对你说 <span id="soupTag"></span></div>
+        <div class="hd"><img class="soupAvatar" src="../../HealthApp/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" alt=""> 小鸭想对你说</div>
         <div class="body" id="soupBody"></div>
-        <div class="foot" onclick="rollSoup()">↻ 换一句</div>
       </div>
     </div>
     <div class="homeBar"></div>
@@ -163,7 +169,6 @@
 /* ---------------- 模拟数据：三种数据情绪场景 ---------------- */
 const SCENARIOS = {
   up: {  // 进步期：减脂顺、正反馈多
-    sub:"2026.04.21 – 2026.06.20 · 较上一周期对比",
     metrics:{w:"−3.4kg", f:"4.0次/周", s:"7.1h"},
     summary:`减脂总体<b style="color:var(--weight)">稳步向好</b>，从 85.2kg 降到 81.8kg，累计 <b>−3.4kg</b>；运动共 <b>52 次 / 38.6 小时</b>，以跑步和力量为主，强度比上一周期更扎实。`,
     goods:[
@@ -179,7 +184,6 @@ const SCENARIOS = {
     sentiment:"positive"
   },
   down:{ // 反弹期：体重上升、频率下滑
-    sub:"2026.04.21 – 2026.06.20 · 较上一周期对比",
     metrics:{w:"+1.6kg", f:"2.1次/周", s:"6.4h"},
     summary:`这段时间减脂<b style="color:var(--warn)">出现反复</b>，体重从 80.2kg 回到 81.8kg（<b>+1.6kg</b>）；运动共 28 次 / 19 小时，频率较上一周期有所回落——别灰心，找回节奏就好。`,
     goods:[
@@ -195,7 +199,6 @@ const SCENARIOS = {
     sentiment:"negative"
   },
   flat:{ // 平稳期
-    sub:"2026.04.21 – 2026.06.20 · 较上一周期对比",
     metrics:{w:"−0.3kg", f:"3.2次/周", s:"7.0h"},
     summary:`这段时间各项指标<b>大体平稳</b>：体重基本持平（−0.3kg），运动 41 次 / 30 小时，睡眠 7.0h——稳住了，但也到了可以再推一把的时候。`,
     goods:[
@@ -211,12 +214,12 @@ const SCENARIOS = {
   }
 };
 
-/* ---------------- 鸡汤库：按数据情绪分三类 ---------------- */
+/* ---------------- 暖心寄语库：按数据情绪分三类 ---------------- */
 const SOUP = {
   positive:[ // 进步期：肯定 + 鼓励
     "你不是在和体重较劲，<br>而是在和昨天那个想偷懒的自己赛跑。<br>这段日子，你赢的次数更多了。",
     "自律不是苦行，<br>是你给未来的自己悄悄存下的底气。<br>这一程，存得很满。",
-    "小鸡看得见——<br>你每一次迈出门的脚步，<br>都正在把更好的身体一点点喂大。",
+    "小鸭看得见——<br>你每一次迈出门的脚步，<br>都正在把更好的身体一点点养大。",
     "了不起的不是数字变小了，<br>而是你把「坚持」过成了习惯。",
     "你做到的，<br>是很多人只在年初想想的事。<br>继续，别回头。",
     "汗水不会撒谎，<br>它把你这段日子的认真，<br>都写进了更轻盈的身体里。",
@@ -224,7 +227,7 @@ const SOUP = {
   negative:[ // 反弹期：打气 + 安慰，不指责
     "起伏是减脂的常态，<br>真正重要的，是你愿意翻开这页报告——<br>那说明你还没放弃自己。",
     "反弹不可怕，<br>怕的是因为一次后退，<br>就把走过的整条路都否定掉。",
-    "小鸡不挑你跑得快不快，<br>只看你今天有没有，<br>愿意重新迈出那一步。",
+    "小鸭不挑你跑得快不快，<br>只看你今天有没有，<br>愿意重新迈出那一步。",
     "把这周期当作一次提醒，<br>不是失败的证据。<br>明天，我们从一顿好觉开始。",
     "身体偶尔会任性，<br>但你比上个月更懂它了。<br>这本身，就是进步。",
     "慢一点没关系，<br>停下来回头看看，再出发——<br>我一直在这儿等你。",
@@ -234,14 +237,14 @@ const SOUP = {
     "平台期不是终点，<br>是身体在问你：<br>「准备好迎接下一阶段了吗？」",
     "把每一个平凡的坚持日子叠起来，<br>就是别人眼里的「天生自律」。",
     "你没有退步，<br>这本身就值得肯定。<br>现在，给目标加一点点新鲜感吧。",
-    "和昨天打平，<br>也是一种不输。<br>但小鸡相信，你还能更好。",
+    "和昨天打平，<br>也是一种不输。<br>但小鸭相信，你还能更好。",
     "习惯已经长在身上了，<br>剩下的，就是给它一个新方向。",
   ]
 };
 
 /* ---------------- 状态 ---------------- */
 let curScenario = "up";
-let curDays = 60;
+let curDays = 30;
 
 function setScenario(sc){
   curScenario = sc;
@@ -253,7 +256,6 @@ function setScenario(sc){
 function pickPreset(days){
   document.querySelectorAll('#presetChips .chip').forEach(c=>c.classList.toggle('on', +c.dataset.days===days));
   if(days>0){ curDays=days; updateHint(); syncDateInputs(days); }
-  else { updateHint(); }
 }
 function syncDateInputs(days){
   const end=new Date('2026-06-20'); const start=new Date(end); start.setDate(end.getDate()-days+1);
@@ -267,7 +269,11 @@ function updateHint(){
 }
 ['startDate','endDate'].forEach(id=>document.getElementById(id).addEventListener('change',()=>{
   const s=new Date(document.getElementById('startDate').value), e=new Date(document.getElementById('endDate').value);
-  if(s&&e&&e>=s){ curDays=Math.round((e-s)/864e5)+1; document.querySelectorAll('#presetChips .chip').forEach(c=>c.classList.toggle('on',+c.dataset.days===0)); updateHint(); }
+  if(s&&e&&e>=s){
+    curDays=Math.round((e-s)/864e5)+1;
+    document.querySelectorAll('#presetChips .chip').forEach(c=>c.classList.toggle('on', +c.dataset.days===curDays));
+    updateHint();
+  }
 }));
 
 function goReport(){
@@ -286,7 +292,9 @@ function liHTML(item){
 }
 function renderReport(){
   const d=SCENARIOS[curScenario];
-  document.getElementById('reportSub').textContent=d.sub;
+  const start=document.getElementById('startDate').value.replaceAll('-', '.');
+  const end=document.getElementById('endDate').value.replaceAll('-', '.');
+  document.getElementById('reportSub').textContent=`${start} – ${end} · 较上一周期对比`;
   document.getElementById('ovText').innerHTML=d.summary;
   document.getElementById('mW').textContent=d.metrics.w;
   document.getElementById('mF').textContent=d.metrics.f;
@@ -301,14 +309,10 @@ function rollSoup(){
   const pool=SOUP[s];
   const text=pool[Math.floor(Math.random()*pool.length)];
   document.getElementById('soupBody').innerHTML='“'+text+'”';
-  const tag=document.getElementById('soupTag');
-  if(s==='positive'){ tag.className='tagPos'; tag.textContent='鼓励'; }
-  else if(s==='negative'){ tag.className='tagNeg'; tag.textContent='打气'; }
-  else { tag.className='tagPos'; tag.textContent='陪伴'; }
 }
 
 /* init */
-syncDateInputs(60); updateHint();
+syncDateInputs(30); updateHint();
 </script>
 </body>
 </html>

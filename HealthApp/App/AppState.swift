@@ -13,7 +13,14 @@ final class AppState: ObservableObject {
 
     private enum StorageKey {
         static let healthAuthorizationCompleted = "healthAuthorizationCompleted"
+        /// 上次运行的 App 版本（"短版本号 (构建号)"），用于检测换版本。
+        static let lastRunAppVersion = "lastRunAppVersion"
     }
+
+    /// 退后台超过此时长，再次进前台时强制重走启动页（回首页 + 重新预热）。
+    private let backgroundResetThreshold: TimeInterval = 30 * 60
+    /// 进入后台的时刻；回前台据此判断停留时长。
+    private var backgroundEnteredAt: Date?
 
     /// 数据源（协议类型）。DEBUG 注入纯 Mock；Release 注入真实 HealthKit。
     @Published private(set) var repository: HealthDataRepository
@@ -68,9 +75,15 @@ final class AppState: ObservableObject {
     }
 
     /// 应用启动流程：加载首页数据 + 预热各趋势页，达到最短展示时长后撤下启动页。
+    /// 可重入：退后台超时（restartFromSplash）会把门闩重置为 false 后再次调用本方法。
     func startUp() async {
         guard !isInitialLoadComplete else { return }
         let start = Date()
+        // 换版本：先清缓存（不动用户数据），让新版从真实数据源重新拉取，避免旧结构残留。
+        if appVersionDidChange() {
+            repository.clearCache()
+            persistCurrentAppVersion()
+        }
         // 事件（首页/各页叠加所需）与三个趋势页首屏数据并行预热，splash 期间一次拉齐。
         async let events: Void = loadInitialData()
         async let warm: Void = repository.prewarm()
@@ -80,6 +93,49 @@ final class AppState: ObservableObject {
             try? await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
         }
         isInitialLoadComplete = true
+    }
+
+    // MARK: - 生命周期：换版本 / 后台超时
+
+    /// 当前 App 版本标识："短版本号 (构建号)"。
+    private var currentAppVersion: String {
+        let info = Bundle.main.infoDictionary
+        let short = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(short) (\(build))"
+    }
+
+    /// 与上次运行记录的版本是否不同（含首次安装：上次为 nil）。
+    private func appVersionDidChange() -> Bool {
+        userDefaults.string(forKey: StorageKey.lastRunAppVersion) != currentAppVersion
+    }
+
+    private func persistCurrentAppVersion() {
+        userDefaults.set(currentAppVersion, forKey: StorageKey.lastRunAppVersion)
+    }
+
+    /// 场景相位变化（由 App 入口转发）：记录进后台时刻，回前台时判断是否需要重走启动页。
+    func handleScenePhase(_ phase: ScenePhase) {
+        switch phase {
+        case .background:
+            backgroundEnteredAt = Date()
+        case .active:
+            if let enteredAt = backgroundEnteredAt,
+               Date().timeIntervalSince(enteredAt) >= backgroundResetThreshold {
+                restartFromSplash()
+            }
+            backgroundEnteredAt = nil
+        default:
+            break
+        }
+    }
+
+    /// 重走启动页：重置门闩并回到首页，再次执行启动预热流程。
+    private func restartFromSplash() {
+        guard isInitialLoadComplete else { return } // 仍在启动页则无需重启
+        isInitialLoadComplete = false
+        selectedTab = .home
+        Task { await startUp() }
     }
 
     /// A3 主按钮：申请 HealthKit 读取权限，成功后记住并撤下引导。

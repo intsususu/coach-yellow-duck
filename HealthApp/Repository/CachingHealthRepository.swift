@@ -99,6 +99,31 @@ final class CachingHealthRepository: HealthDataRepository {
         _ = await (ws, rw, st, sl)
     }
 
+    /// 清空全部缓存：内存会话值 + 在途任务引用 + 落盘快照。
+    /// 不触碰事件 / 目标 / 授权等用户数据；清空后下次 prewarm 会从真实数据源重新拉取。
+    func clearCache() {
+        activeDaily = nil
+        basalDaily = nil
+        exerciseSeriesCache = [:]
+        workoutsCache = nil
+        weightSeriesCache = [:]
+        recentWeightCache = nil
+        weightStatsCache = nil
+        sleepSeriesCache = [:]
+
+        activeDailyTask = nil
+        basalDailyTask = nil
+        exerciseSeriesTask = [:]
+        workoutsTask = nil
+        weightSeriesTask = [:]
+        recentWeightTask = nil
+        weightStatsTask = nil
+        sleepSeriesTask = [:]
+
+        snapshot = TrendSnapshot()
+        persistSnapshot()
+    }
+
     private func persistSnapshot() {
         let snap = snapshot
         Task.detached(priority: .utility) { TrendSnapshotStore.save(snap) }

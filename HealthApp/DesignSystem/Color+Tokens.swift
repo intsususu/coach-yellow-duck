@@ -31,6 +31,7 @@ extension Color {
     static let sleepIndigo    = Color(hex: "#4f46e5")  // 睡眠
     static let exerciseOrange = Color(hex: "#ea580c")  // 运动 / 损伤
     static let successGreen   = Color(hex: "#16a34a")  // 下降趋势、达标
+    static let warningAmber   = Color(hex: "#ca8a04")  // 「需要关注」用：偏暗的黄，提示但不刺眼
 
     // MARK: - Apple 健康睡眠阶段
     static let sleepDeep      = Color(hex: "#5856d6")  // 深度睡眠：紫色

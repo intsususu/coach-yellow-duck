@@ -1,0 +1,26 @@
+#!/bin/sh
+# 每次 commit 自动：
+#   1) MARKETING_VERSION 的第二位小数（PATCH / version）+1
+#   2) CURRENT_PROJECT_VERSION（构建号 / version code）+1
+# MAJOR/MINOR 不在此处理：MAJOR 手动，MINOR 用 scripts/bump-minor.sh
+
+PBXPROJ="HealthApp.xcodeproj/project.pbxproj"
+[ -f "$PBXPROJ" ] || exit 0
+
+# --- version: PATCH +1 ---
+cur=$(grep -m1 -E 'MARKETING_VERSION = [0-9]' "$PBXPROJ" | sed -E 's/.*= ([0-9.]+);.*/\1/')
+[ -n "$cur" ] || exit 0
+major=$(echo "$cur" | cut -d. -f1)
+minor=$(echo "$cur" | cut -d. -f2)
+patch=$(echo "$cur" | cut -d. -f3)
+patch=$((${patch:-0} + 1))
+new="$major.$minor.$patch"
+perl -i -pe "s/MARKETING_VERSION = [0-9][0-9.]*;/MARKETING_VERSION = $new;/g" "$PBXPROJ"
+
+# --- version code: CURRENT_PROJECT_VERSION +1 ---
+code=$(grep -m1 -E 'CURRENT_PROJECT_VERSION = [0-9]' "$PBXPROJ" | sed -E 's/.*= ([0-9]+);.*/\1/')
+newcode=$((${code:-0} + 1))
+perl -i -pe "s/CURRENT_PROJECT_VERSION = [0-9]+;/CURRENT_PROJECT_VERSION = $newcode;/g" "$PBXPROJ"
+
+git add "$PBXPROJ"
+echo "→ version: $cur → $new   version code: $code → $newcode"
