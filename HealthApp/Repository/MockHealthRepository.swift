@@ -73,6 +73,9 @@ final class MockHealthRepository: HealthDataRepository {
         let thisYear = Self.dailyWeights.filter { calendar.component(.year, from: $0.date) == currentYear }
         let allValues = Self.dailyWeights.map(\.kg)
 
+        // 累计减少按全历史（跨年度月级 + 最新日点）识别下坡段，覆盖比日级序列更长的时间跨度。
+        let history = Self.monthlyWeightsExtended + Array(Self.dailyWeights.suffix(1))
+
         return WeightStatistics(
             current: Self.dailyWeights.last?.kg.rounded(toPlaces: 1),
             yearHigh: thisYear.map(\.kg).max()?.rounded(toPlaces: 1),
@@ -81,7 +84,8 @@ final class MockHealthRepository: HealthDataRepository {
             allTimeHigh: max(allValues.max() ?? WeightHistoryContract.startWeight,
                              WeightHistoryContract.startWeight),
             allTimeLow: min(allValues.min() ?? WeightHistoryContract.historicalLow,
-                            WeightHistoryContract.historicalLow)
+                            WeightHistoryContract.historicalLow),
+            lossSegments: WeightLossSegment.segments(from: history)
         )
     }
 

@@ -12,14 +12,14 @@ struct WeightView: View {
     /// 是否叠加事件：全局开关，由首页顶部控制，各趋势页共用。
     private var showsEvents: Bool { appState.showsEvents }
     /// 趋势图可视窗口前沿（leading edge）；随手势滑动更新，并驱动右下角事件图例的过滤。
+    /// 体重、体脂肪、体脂率三张图共用同一前沿，横向滚动联动：滑动任意一张，其余两张同步取景。
     @State private var scrollPosition = Date()
-    /// 体脂肪 / 体脂率两张趋势图各自独立的可视窗口前沿；与体重图共用周期，横向滚动互不影响。
-    @State private var bodyFatMassScroll = Date()
-    @State private var bodyFatPercentScroll = Date()
     /// 在图上点选的事件；非空且事件开关打开时，卡片下方展示其详情。
     @State private var selectedEvent: HealthEvent?
     /// 点击图例时选中的基础类型；与图上单条事件选中互斥。
     @State private var selectedLegendType: EventType?
+    /// 是否展示「累计减少」口径说明弹窗。
+    @State private var showsCumulativeLossInfo = false
 
     var body: some View {
         NavigationStack {
@@ -53,7 +53,6 @@ struct WeightView: View {
                 transaction.animation = nil
                 withTransaction(transaction) {
                     resetScrollToLatest(for: requestedRange)
-                    resetBodyFatScroll(for: requestedRange)
                     chartRange = requestedRange
                 }
             }
@@ -84,7 +83,6 @@ struct WeightView: View {
         transaction.animation = nil
         withTransaction(transaction) {
             resetScrollToLatest(for: requestedRange)
-            resetBodyFatScroll(for: requestedRange)
             chartRange = requestedRange
         }
     }
@@ -204,9 +202,11 @@ struct WeightView: View {
         return scrollPosition...scrollPosition.addingTimeInterval(seconds)
     }
 
-    /// 切换时间范围或重载数据后，把窗口对齐到最新一段（右端贴齐最后样本）。
+    /// 切换时间范围或重载数据后，把共用窗口对齐到最新一段（右端贴齐最后样本）。
+    /// 取体重与体脂两组样本中较晚的日期，保证三张图首屏都落在最新数据上。
     private func resetScrollToLatest(for range: TimeRange) {
-        guard let last = viewModel.samples.map(\.date).max(),
+        let dates = viewModel.samples.map(\.date) + viewModel.bodyFatSamples.map(\.date)
+        guard let last = dates.max(),
               let seconds = range.visibleDomainSeconds else { return }
         // 右端留出与 WeightChart 同比例的留白，最后一个圆点不再贴边被裁。
         scrollPosition = last.addingTimeInterval(seconds * WeightChart.trailingPadFactor - seconds)
@@ -293,9 +293,19 @@ struct WeightView: View {
                 HStack(spacing: 0) {
                     statistic(title: "今年最高", value: stats.yearHigh, color: .textPrimary)
                     statistic(title: "历史最高", value: stats.allTimeHigh, color: .textPrimary)
-                    statistic(title: "累计减少", value: stats.cumulativeLoss, color: .successGreen)
+                    Button {
+                        showsCumulativeLossInfo = true
+                    } label: {
+                        statistic(title: "累计减少", value: stats.cumulativeLoss,
+                                  color: .successGreen, showsInfoHint: true)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
+        }
+        .sheet(isPresented: $showsCumulativeLossInfo) {
+            CumulativeLossInfoView(statistics: viewModel.statistics)
+                .presentationDetents([.medium, .large])
         }
     }
 
@@ -311,7 +321,7 @@ struct WeightView: View {
             BodyFatChart(samples: viewModel.bodyFatSamples,
                          value: { $0.fatMassKg },
                          range: chartRange,
-                         scrollPosition: $bodyFatMassScroll,
+                         scrollPosition: $scrollPosition,
                          color: .bodyFatPink,
                          dashed: false,
                          valueFormat: "%.1f")
@@ -334,7 +344,7 @@ struct WeightView: View {
             BodyFatChart(samples: viewModel.bodyFatSamples,
                          value: { $0.fatPercent },
                          range: chartRange,
-                         scrollPosition: $bodyFatPercentScroll,
+                         scrollPosition: $scrollPosition,
                          color: .bodyFatPinkSoft,
                          dashed: true,
                          valueFormat: "%.1f%%")
@@ -354,20 +364,19 @@ struct WeightView: View {
         }
     }
 
-    private func resetBodyFatScroll(for range: TimeRange) {
-        guard let last = viewModel.bodyFatSamples.map(\.date).max(),
-              let seconds = range.visibleDomainSeconds else { return }
-        // 与体重图同比例的右端留白，最后一个圆点不再贴边被裁。
-        let aligned = last.addingTimeInterval(seconds * WeightChart.trailingPadFactor - seconds)
-        bodyFatMassScroll = aligned
-        bodyFatPercentScroll = aligned
-    }
-
-    private func statistic(title: String, value: Double?, color: Color) -> some View {
+    private func statistic(title: String, value: Double?, color: Color,
+                           showsInfoHint: Bool = false) -> some View {
         VStack(spacing: 5) {
-            Text(title)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.textSecondary)
+            HStack(spacing: 3) {
+                Text(title)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.textSecondary)
+                if showsInfoHint {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.textMuted)
+                }
+            }
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(Self.weightText(value))
                     .font(.system(size: 22, weight: .heavy))

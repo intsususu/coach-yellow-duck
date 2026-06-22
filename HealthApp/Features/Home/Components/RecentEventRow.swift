@@ -16,10 +16,21 @@ struct RecentEventRow: View {
                 .background(Circle().fill(event.type.color.opacity(0.16)))
 
             VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Text(event.type.label)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.textPrimary)
+                    // 标签紧跟类型名；首页空间有限，最多内联展示前 2 个，完整标签见事件列表页。
+                    ForEach(event.tags.prefix(2), id: \.self) { tag in
+                        Text(tag)
+                            .font(.system(size: 10, weight: .semibold))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .foregroundColor(event.type.color)
+                            .background(event.type.backgroundColor)
+                            .clipShape(Capsule())
+                            .lineLimit(1)
+                    }
                     Text(Self.dateText(for: event))
                         .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.textSecondary)

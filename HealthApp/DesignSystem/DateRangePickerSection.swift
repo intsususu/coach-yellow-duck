@@ -29,7 +29,8 @@ struct DateRangePickerSection: View {
             if isPeriod {
                 dateRow("开始日期", date: startDate, field: .start)
                     .onChange(of: startDate) { _, newValue in
-                        if endDate < newValue { endDate = newValue }
+                        // 选定开始日期后，结束日期立即联动到开始日期后 3 天。
+                        endDate = calendar.date(byAdding: .day, value: 3, to: newValue) ?? newValue
                     }
                 if activeField == .start {
                     DateWheelPicker(selection: $startDate,
@@ -166,7 +167,7 @@ private struct DateWheelPicker: View {
         HStack(spacing: 0) {
             Picker("年", selection: yearBinding) {
                 ForEach(years, id: \.self) { year in
-                    Text("\(year)年").tag(year)
+                    Text(verbatim: "\(year)年").tag(year)
                 }
             }
             .frame(maxWidth: .infinity)

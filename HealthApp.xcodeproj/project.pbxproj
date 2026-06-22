@@ -31,6 +31,7 @@
 		BF000000000000000000002E /* WeightSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE000000000000000000002D /* WeightSample.swift */; };
 		BF00000000000000000000A0 /* BodyFatSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000A0 /* BodyFatSample.swift */; };
 		BF00000000000000000000A2 /* BodyFatChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000A2 /* BodyFatChart.swift */; };
+		BF00000000000000000000A3 /* CumulativeLossInfoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000A3 /* CumulativeLossInfoView.swift */; };
 		BF0000000000000000000030 /* HealthDataRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE000000000000000000002F /* HealthDataRepository.swift */; };
 		BF0000000000000000000032 /* MockHealthRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000031 /* MockHealthRepository.swift */; };
 		BF0000000000000000000052 /* WeightChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000051 /* WeightChart.swift */; };
@@ -46,6 +47,7 @@
 		BF0000000000000000000062 /* EventEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000061 /* EventEditorView.swift */; };
 		BF0000000000000000000064 /* EventTimelineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000063 /* EventTimelineView.swift */; };
 		BF0000000000000000000066 /* EventStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000065 /* EventStore.swift */; };
+		BF00000000000000000000A1 /* EventTagStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE00000000000000000000A1 /* EventTagStore.swift */; };
 		BF0000000000000000000071 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000070 /* Assets.xcassets */; };
 		BF0000000000000000000072 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000073 /* SplashView.swift */; };
 		BF0000000000000000000075 /* DailyMetric.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE0000000000000000000074 /* DailyMetric.swift */; };
@@ -84,6 +86,7 @@
 		FE000000000000000000002D /* WeightSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightSample.swift; sourceTree = "<group>"; };
 		FE00000000000000000000A0 /* BodyFatSample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyFatSample.swift; sourceTree = "<group>"; };
 		FE00000000000000000000A2 /* BodyFatChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyFatChart.swift; sourceTree = "<group>"; };
+		FE00000000000000000000A3 /* CumulativeLossInfoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CumulativeLossInfoView.swift; sourceTree = "<group>"; };
 		FE000000000000000000002F /* HealthDataRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDataRepository.swift; sourceTree = "<group>"; };
 		FE0000000000000000000031 /* MockHealthRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockHealthRepository.swift; sourceTree = "<group>"; };
 		FE0000000000000000000051 /* WeightChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightChart.swift; sourceTree = "<group>"; };
@@ -100,6 +103,7 @@
 		FE0000000000000000000061 /* EventEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventEditorView.swift; sourceTree = "<group>"; };
 		FE0000000000000000000063 /* EventTimelineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTimelineView.swift; sourceTree = "<group>"; };
 		FE0000000000000000000065 /* EventStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventStore.swift; sourceTree = "<group>"; };
+		FE00000000000000000000A1 /* EventTagStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventTagStore.swift; sourceTree = "<group>"; };
 		FE0000000000000000000070 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FE0000000000000000000073 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		FE0000000000000000000074 /* DailyMetric.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyMetric.swift; sourceTree = "<group>"; };
@@ -264,6 +268,7 @@
 			children = (
 				FE000000000000000000001F /* WeightView.swift */,
 				FE0000000000000000000053 /* WeightViewModel.swift */,
+				FE00000000000000000000A3 /* CumulativeLossInfoView.swift */,
 			);
 			path = Weight;
 			sourceTree = "<group>";
@@ -289,6 +294,7 @@
 			isa = PBXGroup;
 			children = (
 				FE0000000000000000000065 /* EventStore.swift */,
+				FE00000000000000000000A1 /* EventTagStore.swift */,
 				FE000000000000000000002F /* HealthDataRepository.swift */,
 				FE000000000000000000005B /* HealthKitRepository.swift */,
 				FE0000000000000000000090 /* CachingHealthRepository.swift */,
@@ -401,6 +407,7 @@
 				BF0000000000000000000062 /* EventEditorView.swift in Sources */,
 				BF0000000000000000000064 /* EventTimelineView.swift in Sources */,
 				BF0000000000000000000066 /* EventStore.swift in Sources */,
+				BF00000000000000000000A1 /* EventTagStore.swift in Sources */,
 				BF0000000000000000000010 /* ExerciseView.swift in Sources */,
 				BF000000000000000000007B /* ExerciseViewModel.swift in Sources */,
 				BF0000000000000000000012 /* RecentEventRow.swift in Sources */,
@@ -420,6 +427,7 @@
 				BF000000000000000000002E /* WeightSample.swift in Sources */,
 				BF00000000000000000000A0 /* BodyFatSample.swift in Sources */,
 				BF00000000000000000000A2 /* BodyFatChart.swift in Sources */,
+				BF00000000000000000000A3 /* CumulativeLossInfoView.swift in Sources */,
 				BF0000000000000000000079 /* WeightStatistics.swift in Sources */,
 				BF0000000000000000000030 /* HealthDataRepository.swift in Sources */,
 				BF0000000000000000000090 /* CachingHealthRepository.swift in Sources */,
@@ -567,7 +575,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = HealthApp/HealthApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = 64FF893SV4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -584,7 +592,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.5;
+				MARKETING_VERSION = 1.2.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xltc.sdlyc;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -600,7 +608,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = HealthApp/HealthApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEVELOPMENT_TEAM = 64FF893SV4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -617,7 +625,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.5;
+				MARKETING_VERSION = 1.2.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xltc.sdlyc;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

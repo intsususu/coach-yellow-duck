@@ -55,6 +55,16 @@ enum EventType: String, CaseIterable, Codable {
         self == .illness || self == .travel
     }
 
+    /// 各类型自带的默认小标签，便于快速录入与后续回溯；用户可再自行新增（见 EventTagStore）。
+    var defaultTags: [String] {
+        switch self {
+        case .illness: return ["感冒", "受伤", "其他"]
+        case .travel:  return ["出差", "旅游"]
+        case .drink:   return ["聚餐", "夜宵"]
+        case .other:   return []
+        }
+    }
+
     // MARK: - Codable（含旧数据迁移）
 
     /// 兼容历史本机数据：旧版「出差」曾被错误存为 `injury`，现统一并入「出行」(travel)；
@@ -81,21 +91,23 @@ struct HealthEvent: Identifiable, Codable, Equatable {
     var startDate: Date
     var endDate: Date?
     var note: String
+    var tags: [String]
 
     var isPeriod: Bool { endDate != nil }
 
-    init(id: String, type: EventType, startDate: Date, endDate: Date?, note: String) {
+    init(id: String, type: EventType, startDate: Date, endDate: Date?, note: String, tags: [String] = []) {
         self.id = id
         self.type = type
         self.startDate = startDate
         self.endDate = endDate
         self.note = note
+        self.tags = tags
     }
 
     // MARK: - Codable（含旧数据迁移）
 
     private enum CodingKeys: String, CodingKey {
-        case id, type, title, startDate, endDate, note
+        case id, type, title, startDate, endDate, note, tags
     }
 
     /// 兼容历史本机数据：旧版独立 `title` 字段已移除，解码时把标题内容并入 `note`
@@ -106,6 +118,7 @@ struct HealthEvent: Identifiable, Codable, Equatable {
         type = try container.decode(EventType.self, forKey: .type)
         startDate = try container.decode(Date.self, forKey: .startDate)
         endDate = try container.decodeIfPresent(Date.self, forKey: .endDate)
+        tags = (try container.decodeIfPresent([String].self, forKey: .tags)) ?? []
 
         let storedNote = (try container.decodeIfPresent(String.self, forKey: .note) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -126,6 +139,7 @@ struct HealthEvent: Identifiable, Codable, Equatable {
         try container.encode(startDate, forKey: .startDate)
         try container.encodeIfPresent(endDate, forKey: .endDate)
         try container.encode(note, forKey: .note)
+        try container.encode(tags, forKey: .tags)
     }
 
     // MARK: - 日期解析（"yyyy-MM-dd"）
