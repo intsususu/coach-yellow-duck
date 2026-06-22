@@ -278,9 +278,11 @@ struct HomeView: View {
                         .foregroundColor(.textSecondary)
                         .padding(.vertical, 8)
                 } else {
-                    ForEach(Array(appState.events.prefix(4))) { event in
+                    // 近期事件按事件发生时间（开始日期）倒序，而非录入先后。
+                    let recentEvents = Array(appState.events.sorted { $0.startDate > $1.startDate }.prefix(4))
+                    ForEach(recentEvents) { event in
                         RecentEventRow(event: event)
-                        if event.id != appState.events.prefix(4).last?.id {
+                        if event.id != recentEvents.last?.id {
                             Divider().background(Color.hairline)
                         }
                     }

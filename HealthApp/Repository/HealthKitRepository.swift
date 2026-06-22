@@ -200,20 +200,37 @@ final class HealthKitRepository: HealthDataRepository {
         let yearStart = calendar.date(from: DateComponents(year: calendar.component(.year, from: now),
                                                            month: 1, day: 1)) ?? now
 
+        // 累计减少需全历史日级序列识别峰 / 谷；按自然日取均值，无测量的日自动缺省。
+        let historyStart = calendar.date(from: DateComponents(year: 2015, month: 1, day: 1)) ?? Date.distantPast
+        var dayInterval = DateComponents()
+        dayInterval.day = 1
+        let historyAnchor = calendar.startOfDay(for: historyStart)
+
         async let latest = quantitySamples(type: bodyMass, predicate: nil, limit: 1, ascending: false)
         async let yearStats = weightExtremes(type: bodyMass, start: yearStart, end: now, unit: unit)
         async let allStats = weightExtremes(type: bodyMass, start: Date.distantPast, end: now, unit: unit)
+        async let dailyHistory = statistics(type: bodyMass,
+                                            options: .discreteAverage,
+                                            start: historyStart,
+                                            end: now,
+                                            anchor: historyAnchor,
+                                            interval: dayInterval)
 
         let current = (try? await latest)?.first?.quantity.doubleValue(for: unit)
         let (yearLow, yearHigh) = (try? await yearStats) ?? (nil, nil)
         let (allLow, allHigh) = (try? await allStats) ?? (nil, nil)
+        let dailySeries = ((try? await dailyHistory) ?? []).compactMap { bucket -> WeightSample? in
+            guard let value = bucket.statistics.averageQuantity()?.doubleValue(for: unit) else { return nil }
+            return WeightSample(date: bucket.startDate, kg: value)
+        }
 
         return WeightStatistics(
             current: current?.rounded(toPlaces: 1),
             yearHigh: yearHigh?.rounded(toPlaces: 1),
             yearLow: yearLow?.rounded(toPlaces: 1),
             allTimeHigh: allHigh?.rounded(toPlaces: 1),
-            allTimeLow: allLow?.rounded(toPlaces: 1)
+            allTimeLow: allLow?.rounded(toPlaces: 1),
+            lossSegments: WeightLossSegment.segments(from: dailySeries)
         )
     }
 

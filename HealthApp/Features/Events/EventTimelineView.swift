@@ -242,12 +242,21 @@ private struct EventTimelineRow: View {
                 .padding(.top, 3)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 8) {
+                FlowLayout(spacing: 6) {
                     Text(event.type.label)
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.textPrimary)
                         .lineLimit(1)
-                    durationTag
+                        .padding(.trailing, 2)
+                    ForEach(event.tags, id: \.self) { tag in
+                        Text(tag)
+                            .font(.system(size: 11, weight: .semibold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .foregroundColor(event.type.color)
+                            .background(event.type.backgroundColor)
+                            .clipShape(Capsule())
+                    }
                 }
                 Text(Self.dateText(for: event))
                     .font(.system(size: 12, weight: .medium))
@@ -269,16 +278,6 @@ private struct EventTimelineRow: View {
         }
         .padding(14)
         .contentShape(Rectangle())
-    }
-
-    private var durationTag: some View {
-        Text(event.isPeriod ? "时间段" : "单日")
-            .font(.system(size: 10, weight: .bold))
-            .padding(.horizontal, 7)
-            .padding(.vertical, 2)
-            .foregroundColor(event.type.color)
-            .background(event.type.backgroundColor)
-            .clipShape(Capsule())
     }
 
     // MARK: - 日期文案

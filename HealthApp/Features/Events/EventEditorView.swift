@@ -10,12 +10,17 @@ struct EventEditorView: View {
 
     private let editingEvent: HealthEvent?
 
+    @StateObject private var tagStore = EventTagStore()
+
     @State private var type: EventType
     @State private var isPeriod: Bool
     @State private var startDate: Date
     @State private var endDate: Date
     @State private var note: String
+    @State private var selectedTags: [String]
     @State private var isSaving = false
+    @State private var isAddingTag = false
+    @State private var newTagText = ""
 
     init(event: HealthEvent? = nil) {
         self.editingEvent = event
@@ -25,6 +30,7 @@ struct EventEditorView: View {
         _startDate = State(initialValue: event?.startDate ?? defaultDate)
         _endDate = State(initialValue: event?.endDate ?? event?.startDate ?? defaultDate)
         _note = State(initialValue: event?.note ?? "")
+        _selectedTags = State(initialValue: event?.tags ?? [])
     }
 
     private var isEditing: Bool { editingEvent != nil }
@@ -34,6 +40,7 @@ struct EventEditorView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     typeSection
+                    tagSection
                     durationSection
                     dateSection
                     noteSection
@@ -55,6 +62,15 @@ struct EventEditorView: View {
                         .tint(.brandBlue)
                         .disabled(isSaving)
                 }
+            }
+            // 标签按类型归类，切换类型时清空已选，避免残留与新类型无关的标签。
+            .onChange(of: type) { _ in selectedTags = [] }
+            .alert("新增标签", isPresented: $isAddingTag) {
+                TextField("标签名称", text: $newTagText)
+                Button("取消", role: .cancel) { }
+                Button("添加") { addCustomTag() }
+            } message: {
+                Text("为「\(type.label)」添加一个自定义标签")
             }
         }
         // 注意：不要在此覆盖 \.calendar / \.locale 环境。覆盖后 compact DatePicker 的
@@ -98,6 +114,63 @@ struct EventEditorView: View {
         }
         .buttonStyle(.plain)
         .animation(.easeInOut(duration: 0.15), value: type)
+    }
+
+    // MARK: - 标签
+
+    private var tagSection: some View {
+        fieldGroup(title: "标签") {
+            FlowLayout(spacing: 8) {
+                ForEach(tagStore.tags(for: type), id: \.self) { tag in
+                    tagChip(tag)
+                }
+                addTagChip
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func tagChip(_ tag: String) -> some View {
+        let selected = selectedTags.contains(tag)
+        return Button {
+            if let index = selectedTags.firstIndex(of: tag) {
+                selectedTags.remove(at: index)
+            } else {
+                selectedTags.append(tag)
+            }
+        } label: {
+            Text(tag)
+                .font(.system(size: 13, weight: .semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .foregroundColor(selected ? .white : type.color)
+                .background(selected ? type.color : type.backgroundColor)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.15), value: selected)
+    }
+
+    private var addTagChip: some View {
+        Button {
+            newTagText = ""
+            isAddingTag = true
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "plus")
+                    .font(.system(size: 11, weight: .bold))
+                Text("添加")
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .foregroundColor(.textSecondary)
+            .overlay(
+                Capsule().stroke(Color.textMuted.opacity(0.4),
+                                 style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - 持续切换
@@ -175,21 +248,88 @@ struct EventEditorView: View {
         }
     }
 
+    // MARK: - 标签新增
+
+    private func addCustomTag() {
+        let tag = newTagText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !tag.isEmpty else { return }
+        tagStore.addTag(tag, for: type)
+        if !selectedTags.contains(tag) { selectedTags.append(tag) }
+        newTagText = ""
+    }
+
     // MARK: - 保存
 
     private func save() {
         guard !isSaving else { return }
         isSaving = true
+        // 只保存当前类型仍可用的标签，避免切换类型后残留无关标签。
+        let available = tagStore.tags(for: type)
         let event = HealthEvent(
             id: editingEvent?.id ?? UUID().uuidString,
             type: type,
             startDate: startDate,
             endDate: isPeriod ? max(endDate, startDate) : nil,
-            note: note.trimmingCharacters(in: .whitespacesAndNewlines)
+            note: note.trimmingCharacters(in: .whitespacesAndNewlines),
+            tags: selectedTags.filter { available.contains($0) }
         )
         Task {
             await appState.saveEvent(event)
             dismiss()
         }
+    }
+}
+
+// MARK: - 自动换行流式布局
+
+/// 标签等元素从左到右排布，超出宽度自动换行。iOS 16+ Layout 协议实现。
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        let rows = computeRows(maxWidth: maxWidth, subviews: subviews)
+        let height = rows.reduce(0) { $0 + $1.height } + spacing * CGFloat(max(0, rows.count - 1))
+        return CGSize(width: proposal.width ?? rows.map(\.width).max() ?? 0, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
+        let rows = computeRows(maxWidth: bounds.width, subviews: subviews)
+        var y = bounds.minY
+        for row in rows {
+            var x = bounds.minX
+            for item in row.items {
+                let size = subviews[item].sizeThatFits(.unspecified)
+                subviews[item].place(at: CGPoint(x: x, y: y),
+                                     anchor: .topLeading,
+                                     proposal: ProposedViewSize(size))
+                x += size.width + spacing
+            }
+            y += row.height + spacing
+        }
+    }
+
+    private struct Row { var items: [Int] = []; var width: CGFloat = 0; var height: CGFloat = 0 }
+
+    private func computeRows(maxWidth: CGFloat, subviews: Subviews) -> [Row] {
+        var rows: [Row] = []
+        var current = Row()
+        for index in subviews.indices {
+            let size = subviews[index].sizeThatFits(.unspecified)
+            let needed = current.items.isEmpty ? size.width : current.width + spacing + size.width
+            if needed > maxWidth, !current.items.isEmpty {
+                rows.append(current)
+                current = Row()
+            }
+            if current.items.isEmpty {
+                current.width = size.width
+            } else {
+                current.width += spacing + size.width
+            }
+            current.items.append(index)
+            current.height = max(current.height, size.height)
+        }
+        if !current.items.isEmpty { rows.append(current) }
+        return rows
     }
 }

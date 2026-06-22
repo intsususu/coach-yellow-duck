@@ -81,7 +81,9 @@ final class AppState: ObservableObject {
 
     /// 应用启动流程：加载首页数据 + 预热各趋势页，达到最短展示时长后撤下启动页。
     /// 可重入：退后台超时（restartFromSplash）会把门闩重置为 false 后再次调用本方法。
-    func startUp() async {
+    /// - Parameter refresh: 后台超时回前台时传 true：进程未被杀，内存缓存仍是上次的旧值，
+    ///   prewarm 会全部命中旧缓存而空转，必须先清缓存再拉，否则首页显示的是昨天的数据。
+    func startUp(refresh: Bool = false) async {
         guard !isInitialLoadComplete else { return }
         let start = Date()
         // 换版本：先清缓存（不动用户数据），让新版从真实数据源重新拉取，避免旧结构残留。
@@ -90,8 +92,9 @@ final class AppState: ObservableObject {
             persistCurrentAppVersion()
         }
         // 事件（首页/各页叠加所需）与三个趋势页首屏数据并行预热，splash 期间一次拉齐。
+        // 冷启动内存缓存本就为空，prewarm 即等于拉新；回前台则需 refreshCachedData 先清旧缓存。
         async let events: Void = loadInitialData()
-        async let warm: Void = repository.prewarm()
+        async let warm: Void = refresh ? repository.refreshCachedData() : repository.prewarm()
         _ = await (events, warm)
         let remaining = minimumSplashDuration - Date().timeIntervalSince(start)
         if remaining > 0 {
@@ -140,7 +143,7 @@ final class AppState: ObservableObject {
         guard isInitialLoadComplete else { return } // 仍在启动页则无需重启
         isInitialLoadComplete = false
         selectedTab = .home
-        Task { await startUp() }
+        Task { await startUp(refresh: true) }
     }
 
     /// A3 主按钮：申请 HealthKit 读取权限，成功后记住并撤下引导。
