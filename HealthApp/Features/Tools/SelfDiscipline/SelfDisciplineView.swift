@@ -507,7 +507,9 @@ private struct CheckInTargetRow: View {
     }
 }
 
+#if DEBUG
 #Preview {
     NavigationStack { SelfDisciplineView() }
         .environmentObject(AppState(repository: MockHealthRepository()))
 }
+#endif

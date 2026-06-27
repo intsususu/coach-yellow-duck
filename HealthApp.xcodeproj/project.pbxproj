@@ -206,7 +206,6 @@
 				0C667C13D23E3C25435E40C8 /* CheckInIntent.swift */,
 				8FC475D3AF666FCF2548BA2A /* Assets.xcassets */,
 			);
-			name = SelfDisciplineWidget;
 			path = SelfDisciplineWidget;
 			sourceTree = "<group>";
 		};
@@ -303,8 +302,8 @@
 				6A0000000000000000000060 /* Import */,
 				6A000000000000000000003B /* Profile */,
 				6A000000000000000000003C /* Sleep */,
-				6AF000000000000000000001 /* FoodCalorie */,
-				6AF100000000000000000001 /* TrainingPlan */,
+				6AF000000000000000000001 /* Tools/FoodCalorie */,
+				6AF100000000000000000001 /* Tools/TrainingPlan */,
 				6A000000000000000000003D /* Weight */,
 				FE0000000000000000000019 /* PlaceholderContent.swift */,
 			);
@@ -437,7 +436,7 @@
 			path = Analysis;
 			sourceTree = "<group>";
 		};
-		6AF000000000000000000001 /* FoodCalorie */ = {
+		6AF000000000000000000001 /* Tools/FoodCalorie */ = {
 			isa = PBXGroup;
 			children = (
 				FEF000000000000000000001 /* FoodCalorieModels.swift */,
@@ -447,7 +446,7 @@
 			path = Tools/FoodCalorie;
 			sourceTree = "<group>";
 		};
-		6AF100000000000000000001 /* TrainingPlan */ = {
+		6AF100000000000000000001 /* Tools/TrainingPlan */ = {
 			isa = PBXGroup;
 			children = (
 				FEF100000000000000000003 /* ExerciseCard.swift */,
@@ -785,7 +784,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = HealthApp/HealthApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 19;
 				DEVELOPMENT_TEAM = 64FF893SV4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -802,7 +801,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.12;
+				MARKETING_VERSION = 1.2.14;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xltc.sdlyc;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -818,7 +817,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = HealthApp/HealthApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 19;
 				DEVELOPMENT_TEAM = 64FF893SV4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -835,7 +834,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.2.12;
+				MARKETING_VERSION = 1.2.14;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xltc.sdlyc;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -850,7 +849,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = SelfDisciplineWidget/SelfDisciplineWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 19;
 				DEVELOPMENT_TEAM = 64FF893SV4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SelfDisciplineWidget/Info.plist;
@@ -860,7 +859,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.2.12;
+				MARKETING_VERSION = 1.2.14;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xltc.sdlyc.SelfDisciplineWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -878,7 +877,7 @@
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_ENTITLEMENTS = SelfDisciplineWidget/SelfDisciplineWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 19;
 				DEVELOPMENT_TEAM = 64FF893SV4;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = SelfDisciplineWidget/Info.plist;
@@ -888,7 +887,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.2.12;
+				MARKETING_VERSION = 1.2.14;
 				PRODUCT_BUNDLE_IDENTIFIER = com.xltc.sdlyc.SelfDisciplineWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
