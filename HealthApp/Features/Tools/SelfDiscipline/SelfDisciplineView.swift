@@ -32,12 +32,27 @@ struct SelfDisciplineView: View {
         return SelfDisciplineSchedule.effectiveDay(for: Date(), calendar: calendar)
     }
 
-    private var selectedCompletedCount: Int {
-        CheckInTask.allCases.filter { draftStates[$0] == true }.count
-    }
-
     private var isSelectedToday: Bool {
         calendar.isDate(selectedDay, inSameDayAs: today)
+    }
+
+    // MARK: - 打卡统计（本周 / 本月完成数，基于今天所在周/月）
+
+    private var weekCompletedCount: Int {
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: today) else { return 0 }
+        return recordKeys.filter { interval.contains($0.day) }.count
+    }
+
+    private var weekExpectedCount: Int { 7 * CheckInTask.allCases.count }
+
+    private var monthCompletedCount: Int {
+        guard let interval = calendar.dateInterval(of: .month, for: today) else { return 0 }
+        return recordKeys.filter { interval.contains($0.day) }.count
+    }
+
+    private var monthExpectedCount: Int {
+        let days = calendar.range(of: .day, in: .month, for: today)?.count ?? 30
+        return days * CheckInTask.allCases.count
     }
 
     private var showsFatigueWarning: Bool {
@@ -50,18 +65,10 @@ struct SelfDisciplineView: View {
         return "\(comps.year ?? 0)年\(comps.month ?? 1)月"
     }
 
-    private var selectedDayTitle: String {
-        isSelectedToday ? "今日打卡" : "\(monthDayText(selectedDay))打卡"
-    }
-
-    private var selectedDayMeta: String {
-        "\(weekdayText(selectedDay)) · 已完成 \(selectedCompletedCount)/3"
-    }
-
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                summaryCard
+                statsCard
                 monthCalendarCard
                 dayEditorCard
                 rulesCard
@@ -97,24 +104,20 @@ struct SelfDisciplineView: View {
         }
     }
 
-    // MARK: - 顶部摘要
+    // MARK: - 打卡统计
 
-    private var summaryCard: some View {
+    private var statsCard: some View {
         VStack(alignment: .leading, spacing: 14) {
+            Text("打卡统计")
+                .font(.system(size: 18, weight: .heavy))
+                .foregroundColor(.textPrimary)
+
             HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(selectedDayTitle)
-                        .font(.system(size: 18, weight: .heavy))
-                        .foregroundColor(.textPrimary)
-                    Text(selectedDayMeta)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.textSecondary)
-                }
-                Spacer()
-                CheckInProgressRing(completed: selectedCompletedCount, total: CheckInTask.allCases.count)
+                statTile(title: "本周完成打卡", value: weekCompletedCount, total: weekExpectedCount)
+                statTile(title: "本月完成打卡", value: monthCompletedCount, total: monthExpectedCount)
             }
 
-            if isSelectedToday, showsFatigueWarning {
+            if showsFatigueWarning {
                 Label(SelfDisciplineSnapshot.fatigueMessage, systemImage: "exclamationmark.triangle.fill")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.warningAmber)
@@ -123,21 +126,30 @@ struct SelfDisciplineView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.warningAmber.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
-
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
-                ForEach(CheckInTask.allCases) { task in
-                    let isAuto = isAutoExercise(task, on: selectedDay)
-                    CheckInTaskChip(task: task,
-                                    isChecked: draftStates[task] == true,
-                                    detailText: isAuto ? "自动完成" : nil) {
-                        setTask(task, checked: !(draftStates[task] ?? false))
-                    }
-                }
-            }
         }
         .padding(16)
         .frame(maxWidth: .infinity)
         .background(Color.cardBg, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func statTile(title: String, value: Int, total: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.textSecondary)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text("\(value)")
+                    .font(.system(size: 26, weight: .heavy))
+                    .foregroundColor(.successGreen)
+                Text("/\(total)")
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundColor(.textMuted)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(Color.appBg.opacity(0.65), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     // MARK: - 月历
@@ -155,7 +167,7 @@ struct SelfDisciplineView: View {
                 }
             }
 
-            LazyVGrid(columns: columns, spacing: 6) {
+            LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(Self.weekdaySymbols, id: \.self) { symbol in
                     Text(symbol)
                         .font(.system(size: 11, weight: .bold))
@@ -197,23 +209,15 @@ struct SelfDisciplineView: View {
 
     private var dayEditorCard: some View {
         VStack(alignment: .leading, spacing: 13) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("\(monthDayText(selectedDay)) · \(weekdayText(selectedDay))")
-                        .font(.system(size: 16, weight: .heavy))
-                        .foregroundColor(.textPrimary)
-                    Text(isSelectedToday ? "今天" : "历史打卡")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.textSecondary)
-                }
-                Spacer()
-                Text("\(selectedCompletedCount)/\(CheckInTask.allCases.count)")
-                    .font(.system(size: 12, weight: .heavy))
-                    .foregroundColor(selectedCompletedCount == CheckInTask.allCases.count ? .checkInCompletePink : .successGreen)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.successGreen.opacity(0.10), in: Capsule())
+            VStack(alignment: .leading, spacing: 3) {
+                Text("\(monthDayText(selectedDay)) · \(weekdayText(selectedDay))")
+                    .font(.system(size: 16, weight: .heavy))
+                    .foregroundColor(.textPrimary)
+                Text(isSelectedToday ? "今天" : "历史打卡")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.textSecondary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             VStack(spacing: 8) {
                 ForEach(CheckInTask.allCases) { task in
@@ -412,65 +416,8 @@ private struct CheckInCalendarDay: Identifiable {
     var id: Date { date }
 }
 
-private struct CheckInProgressRing: View {
-    let completed: Int
-    let total: Int
-
-    private var progress: CGFloat {
-        guard total > 0 else { return 0 }
-        return CGFloat(completed) / CGFloat(total)
-    }
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Color.hairline, lineWidth: 7)
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(Color.brandBlue, style: StrokeStyle(lineWidth: 7, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-            Text("\(completed)/\(total)")
-                .font(.system(size: 12, weight: .heavy))
-                .foregroundColor(.textPrimary)
-        }
-        .frame(width: 54, height: 54)
-    }
-}
-
-private struct CheckInTaskChip: View {
-    let task: CheckInTask
-    let isChecked: Bool
-    var detailText: String?
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(task.title)
-                    .font(.system(size: 12, weight: .heavy))
-                    .foregroundColor(isChecked ? .white : .textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
-                Text(detailText ?? (isChecked ? "已完成" : task.windowText))
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(isChecked ? .white.opacity(0.82) : .textSecondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.78)
-            }
-            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 8)
-            .background(isChecked ? task.tint : Color.appBg.opacity(0.65),
-                        in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .stroke(isChecked ? Color.clear : Color.hairline, lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
+/// 月历单元：日历优先——日期数字居中为主角，外圈细环按当天打卡完成度填充，
+/// 全勤当天填成实心绿盘；今天 / 选中用外圈细圆标注，不挤压内容。
 private struct CheckInMonthDayCell: View {
     let date: Date
     let isInVisibleMonth: Bool
@@ -480,71 +427,71 @@ private struct CheckInMonthDayCell: View {
     let dayNumber: Int
     let action: () -> Void
 
+    /// 进度环尺寸与线宽。
+    private let ringSize: CGFloat = 34
+    private let lineWidth: CGFloat = 3
+
+    private var total: Int { CheckInTask.allCases.count }
     private var completedCount: Int {
         CheckInTask.allCases.filter { states[$0] == true }.count
     }
-
-    private var dayNumberColor: Color {
-        if completedCount == CheckInTask.allCases.count {
-            return .white
-        }
-        return completedCount == 0 ? .textSecondary : .textPrimary
+    private var isFull: Bool { completedCount == total }
+    private var progress: Double {
+        total == 0 ? 0 : Double(completedCount) / Double(total)
     }
 
-    private var cellBackground: Color {
-        isToday ? Color.brandBlue.opacity(0.08) : Color.appBg.opacity(0.65)
-    }
-
-    private var cellStroke: Color {
-        if isSelected {
-            return .brandBlue
-        }
-        return isToday ? Color.brandBlue.opacity(0.35) : .clear
-    }
-
-    private var cellStrokeWidth: CGFloat {
-        isSelected ? 2 : (isToday ? 1 : 0)
+    private var numberColor: Color {
+        if isFull { return .white }
+        return completedCount == 0 ? .textMuted : .textPrimary
     }
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 0) {
+            ZStack {
+                selectionRing
+                completionRing
                 Text("\(dayNumber)")
-                    .font(.system(size: 12, weight: .heavy))
-                    .foregroundColor(dayNumberColor)
-                    .frame(width: 22, height: 21)
-                    .background(
-                        Group {
-                            if completedCount == CheckInTask.allCases.count {
-                                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                    .fill(Color.checkInCompletePink)
-                            }
-                        }
-                    )
-
-                Spacer(minLength: 4)
-
-                HStack(spacing: 3) {
-                    ForEach(CheckInTask.allCases) { task in
-                        Circle()
-                            .fill(states[task] == true ? task.tint : task.tint.opacity(0.16))
-                            .frame(width: 6, height: 6)
-                    }
-                }
-                .frame(minHeight: 16)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(numberColor)
             }
-            .padding(.top, 6)
-            .padding(.bottom, 5)
             .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(cellBackground, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .stroke(cellStroke, lineWidth: cellStrokeWidth)
-            )
+            .frame(height: 50)
             .opacity(isInVisibleMonth ? 1 : 0.34)
         }
         .buttonStyle(.plain)
+    }
+
+    /// 今天 / 选中：套在完成度环外的一圈细圆，不改变数字居中。
+    @ViewBuilder private var selectionRing: some View {
+        if isSelected {
+            Circle()
+                .stroke(Color.brandBlue.opacity(0.5), lineWidth: 2)
+                .frame(width: ringSize + 8, height: ringSize + 8)
+        } else if isToday {
+            Circle()
+                .stroke(Color.brandBlue.opacity(0.28), lineWidth: 1.5)
+                .frame(width: ringSize + 8, height: ringSize + 8)
+        }
+    }
+
+    /// 完成度环：全勤填实心绿盘，否则灰底环上按完成比例描绿弧。
+    @ViewBuilder private var completionRing: some View {
+        if isFull {
+            Circle()
+                .fill(Color.successGreen)
+                .frame(width: ringSize, height: ringSize)
+        } else {
+            ZStack {
+                Circle()
+                    .stroke(Color.textMuted.opacity(0.20), lineWidth: lineWidth)
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(Color.successGreen,
+                            style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+            }
+            .frame(width: ringSize, height: ringSize)
+        }
     }
 }
 

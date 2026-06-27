@@ -26,10 +26,3 @@ struct CheckInIntent: AppIntent {
         return .result()
     }
 }
-
-/// 无操作意图：铺在卡片底层兜底，使「空白区域」点击也走交互、不打开 App。
-struct NoOpIntent: AppIntent {
-    static var title: LocalizedStringResource = "无操作"
-    init() {}
-    func perform() async throws -> some IntentResult { .result() }
-}

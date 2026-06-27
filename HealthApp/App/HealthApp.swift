@@ -63,6 +63,12 @@ struct HealthApp: App {
             }
             .animation(.easeOut(duration: 0.35), value: appState.isInitialLoadComplete)
             .task { await appState.startUp() }
+            // 桌面小组件深链：点击卡片空白区跳转「我的 → 自律打卡」。
+            .onOpenURL { url in
+                if SelfDisciplineDeepLink.matches(url) {
+                    appState.openSelfDiscipline()
+                }
+            }
             // 退后台超时（≥30 分钟）回前台时重走启动页；换版本由 startUp 内清缓存。
             .onChange(of: scenePhase) { _, phase in
                 appState.handleScenePhase(phase)

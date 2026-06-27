@@ -65,6 +65,10 @@ final class AppState: ObservableObject {
     /// 全局 ＋记事件弹窗（E2）的呈现状态（任意 Tab 右上＋ 唤起，新建）。
     @Published var isEventEditorPresented = false
 
+    /// 「自律打卡」的呈现状态。「我的」页内入口与桌面小组件深链共用：置 true 即在 App
+    /// 最外层导航栈推入 SelfDisciplineView，直接盖在当前页面上（推入时其 onAppear 自动从共享存储刷新）。
+    @Published var opensSelfDiscipline = false
+
     /// 综合分析全屏覆盖层的呈现状态（「我的」入口与首页本周小结共用）。
     @Published var showsAnalysis = false
     /// 首页进入综合分析时携带的本周报告快照；从「我的」进入时为 nil。
@@ -191,6 +195,12 @@ final class AppState: ObservableObject {
     /// 唤起全局记录事件弹窗（E2，新建）。任意 Tab 右上＋ 调用。
     func presentEventEditor() {
         isEventEditorPresented = true
+    }
+
+    /// 直接打开「自律打卡」（桌面小组件深链入口）：在 App 最外层导航栈推入打卡页，
+    /// 直接盖在当前页面上，不经过「我的」。其 onAppear / scenePhase 监听负责刷新数据。
+    func openSelfDiscipline() {
+        opensSelfDiscipline = true
     }
 
     /// 呈现综合分析全屏覆盖层。传入报告时直接展示该快照，否则从日期选择页开始。

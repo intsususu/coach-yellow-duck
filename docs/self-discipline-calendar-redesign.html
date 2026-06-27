@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>自律打卡 · 月历重设计（日历优先）</title>
+  <style>
+    :root {
+      --brand-blue: #2563eb;
+      --success-green: #16a34a;
+      --text-primary: #1a1f29;
+      --text-secondary: #6b7280;
+      --text-muted: #9aa1ab;
+      --app-bg: #f5f6f8;
+      --card-bg: #ffffff;
+      --hairline: #ededf0;
+      --track: rgba(154,161,171,0.20);
+      --accent: var(--success-green);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 28px 16px 72px;
+      background: var(--app-bg); color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .wrap { max-width: 430px; margin: 0 auto; }
+
+    .head h1 { margin: 0 0 6px; font-size: 22px; font-weight: 850; }
+    .head p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
+    .accent-switch { display: flex; gap: 8px; margin-top: 14px; }
+    .accent-switch button {
+      appearance: none; border: 1px solid var(--hairline); background: #fff;
+      border-radius: 999px; padding: 6px 13px; font-size: 12px; font-weight: 800;
+      color: var(--text-secondary); cursor: pointer;
+    }
+    .accent-switch button.is-active { color: #fff; border-color: transparent; }
+
+    .variant { margin-top: 26px; }
+    .variant-tag { font-size: 13px; font-weight: 850; color: var(--text-primary); margin-bottom: 4px; }
+    .variant-desc { font-size: 12px; color: var(--text-muted); margin: 0 0 14px; line-height: 1.5; }
+
+    /* ---------- 月历卡（统一骨架，留白更足）---------- */
+    .card {
+      background: var(--card-bg); border-radius: 22px; padding: 20px 18px;
+      box-shadow: 0 12px 34px rgba(26,31,41,0.06);
+    }
+    .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    .card-head .title { font-size: 18px; font-weight: 850; letter-spacing: 0.2px; }
+    .nav { display: flex; gap: 8px; }
+    .nav button {
+      width: 32px; height: 32px; border-radius: 11px; border: 0;
+      background: var(--app-bg); color: var(--text-primary); font-size: 14px; font-weight: 800; cursor: pointer;
+    }
+
+    .grid { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 10px; }
+    .wd { text-align: center; font-size: 11px; font-weight: 800; color: var(--text-muted); padding-bottom: 8px; }
+
+    .day {
+      position: relative;
+      aspect-ratio: 1 / 1.06;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .day.is-out { visibility: hidden; }
+
+    /* 选中 / 今天：作用在 .focus 包裹层上，不挤压内容 */
+    .focus { position: relative; display: grid; place-items: center; width: 38px; height: 38px; }
+    .day.sel .focus::after {
+      content: ""; position: absolute; inset: -3px; border-radius: 50%;
+      box-shadow: 0 0 0 2px var(--brand-blue);
+    }
+    .day.today:not(.sel) .focus::after {
+      content: ""; position: absolute; inset: -3px; border-radius: 50%;
+      box-shadow: 0 0 0 1.5px rgba(37,99,235,0.32);
+    }
+    .num { font-size: 14px; font-weight: 800; color: var(--text-primary); }
+    .num.zero { color: var(--text-muted); font-weight: 700; }
+
+    /* ===================================================
+       方案 1 · 进度环：数字居中（主角），细环按完成度填充，全勤=实心
+       =================================================== */
+    .v1 .ring {
+      position: relative; width: 36px; height: 36px; border-radius: 50%;
+      display: grid; place-items: center;
+      background: conic-gradient(var(--accent) calc(var(--p) * 360deg), var(--track) 0deg);
+    }
+    .v1 .ring .hole { position: absolute; inset: 3.5px; border-radius: 50%; background: var(--card-bg); }
+    .v1 .ring .num { position: relative; z-index: 1; }
+    .v1 .ring.full .hole { background: var(--accent); }
+    .v1 .ring.full .num { color: #fff; }
+    .v1 .ring.zero { background: var(--track); }
+
+    /* ===================================================
+       方案 2 · 底色分级：数字居中，整格圆底按完成度由浅到实（最安静）
+       =================================================== */
+    .v2 .chip {
+      width: 38px; height: 38px; border-radius: 13px; display: grid; place-items: center;
+      background: transparent;
+    }
+    .v2 .chip.l1 { background: color-mix(in srgb, var(--accent) 13%, #fff); }
+    .v2 .chip.l2 { background: color-mix(in srgb, var(--accent) 30%, #fff); }
+    .v2 .chip.l3 { background: var(--accent); }
+    .v2 .chip.l2 .num { color: #14532d; }
+    .v2 .chip.l3 .num { color: #fff; }
+
+    /* ===================================================
+       方案 3 · 极简全勤标记：平时只有数字，全勤当天才点亮实心，半完成留一枚底点
+       =================================================== */
+    .v3 .mark { position: relative; width: 38px; height: 38px; display: grid; place-items: center; }
+    .v3 .mark.full { background: var(--accent); border-radius: 50%; }
+    .v3 .mark.full .num { color: #fff; }
+    .v3 .mark .udot {
+      position: absolute; bottom: 1px; left: 50%; transform: translateX(-50%);
+      width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+    }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 16px; font-size: 11px; color: var(--text-secondary); }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend .sw { width: 12px; height: 12px; border-radius: 50%; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <h1>自律打卡 · 月历重设计</h1>
+      <p>日历优先：日期数字居中、是视觉主角；打卡完成度只做低调点缀，格子之间留足呼吸。三个方案，统一一种强调色。示例数据。</p>
+      <div class="accent-switch" id="accentSwitch">
+        <button data-accent="#16a34a" class="is-active">强调色 · 绿</button>
+        <button data-accent="#2563eb">强调色 · 蓝</button>
+      </div>
+    </div>
+
+    <section class="variant">
+      <div class="variant-tag">方案 1 · 进度环（推荐）</div>
+      <p class="variant-desc">数字居正中＝主角；外圈细环按当天完成度（0 / 1 / 2 / 3 项）填充，全勤当天填成实心。状态和日期合为一体，干净、有日历感。</p>
+      <div class="card" data-variant="1"></div>
+    </section>
+
+    <section class="variant">
+      <div class="variant-tag">方案 2 · 底色分级</div>
+      <p class="variant-desc">数字居中，整格圆底随完成度由浅到实，像贡献热力图，最安静；代价是看不出具体哪一项。</p>
+      <div class="card" data-variant="2"></div>
+    </section>
+
+    <section class="variant">
+      <div class="variant-tag">方案 3 · 极简全勤标记</div>
+      <p class="variant-desc">平时只有干净的数字；当天全勤才点亮实心圆，半完成留一枚底部小点。日历最清爽，只为「全勤」庆祝。</p>
+      <div class="card" data-variant="3"></div>
+    </section>
+
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <script>
+    const weekdays = ["一","二","三","四","五","六","日"];
+    const daysInMonth = 30, offset = 0, today = 27, selected = 27;
+
+    const states = {};
+    for (let d = 1; d <= daysInMonth; d++) states[d] = 0;
+    [7,8,9,15,16,2].forEach(d => states[d] = 1);
+    [12,19,20].forEach(d => states[d] = 2);
+    states[25] = 3;
+    const done = d => states[d] || 0;
+
+    function focus(d, inner) {
+      let cls = "day";
+      if (d === today) cls += " today";
+      if (d === selected) cls += " sel";
+      return `<div class="${cls}"><div class="focus">${inner}</div></div>`;
+    }
+
+    function cell(d, variant) {
+      const n = done(d);
+      const num = `<span class="num ${n === 0 ? "zero" : ""}">${d}</span>`;
+
+      if (variant === "1") {
+        const cls = "ring" + (n === 3 ? " full" : "") + (n === 0 ? " zero" : "");
+        return focus(d, `<div class="${cls}" style="--p:${n/3}"><div class="hole"></div>${num}</div>`);
+      }
+      if (variant === "2") {
+        return focus(d, `<div class="chip l${n}">${num}</div>`);
+      }
+      // variant 3
+      const mark = "mark" + (n === 3 ? " full" : "");
+      const udot = (n > 0 && n < 3) ? `<span class="udot"></span>` : "";
+      return focus(d, `<div class="${mark}">${num}${udot}</div>`);
+    }
+
+    function renderCard(el, variant) {
+      el.classList.add("v" + variant);
+      let cells = "";
+      for (let i = 0; i < offset; i++) cells += `<div class="day is-out"></div>`;
+      for (let d = 1; d <= daysInMonth; d++) cells += cell(d, variant);
+      const tail = (7 - ((offset + daysInMonth) % 7)) % 7;
+      for (let i = 0; i < tail; i++) cells += `<div class="day is-out"></div>`;
+      el.innerHTML = `
+        <div class="card-head">
+          <div class="title">2026年6月</div>
+          <div class="nav"><button>‹</button><button>›</button></div>
+        </div>
+        <div class="grid">
+          ${weekdays.map(w => `<div class="wd">${w}</div>`).join("")}
+          ${cells}
+        </div>`;
+    }
+
+    function renderAll() {
+      document.querySelectorAll(".card[data-variant]").forEach(el => {
+        el.className = "card";
+        renderCard(el, el.dataset.variant);
+      });
+      document.getElementById("legend").innerHTML = `
+        <span><span class="sw" style="background:var(--accent)"></span>完成度（满＝全勤）</span>
+        <span><span class="sw" style="background:var(--track)"></span>未完成</span>
+        <span><span class="sw" style="box-shadow:inset 0 0 0 2px var(--brand-blue);background:transparent"></span>今天 / 选中</span>`;
+    }
+
+    document.getElementById("accentSwitch").addEventListener("click", e => {
+      const btn = e.target.closest("button"); if (!btn) return;
+      document.documentElement.style.setProperty("--accent", btn.dataset.accent);
+      document.querySelectorAll("#accentSwitch button").forEach(b => {
+        b.classList.toggle("is-active", b === btn);
+        b.style.background = b.classList.contains("is-active") ? b.dataset.accent : "#fff";
+      });
+      renderAll();
+    });
+    const firstBtn = document.querySelector("#accentSwitch button.is-active");
+    firstBtn.style.background = firstBtn.dataset.accent;
+
+    renderAll();
+  </script>
+</body>
+</html>

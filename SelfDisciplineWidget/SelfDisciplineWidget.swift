@@ -322,16 +322,13 @@ struct SelfDisciplineEntryView: View {
     let entry: CheckInEntry
 
     var body: some View {
-        // 底层「无操作」按钮铺满整卡：空白点击走交互、不打开 App。
-        ZStack {
-            Button(intent: NoOpIntent()) { Color.clear }
-                .buttonStyle(.plain)
-                .contentShape(Rectangle())
-            content
-                .padding(.horizontal, 13)
-                .padding(.top, 13)
-                .padding(.bottom, 9)
-        }
+        // 整卡点击跳转「我的 → 自律打卡」；唯一的例外是「打卡」按钮（交互式 App Intent，
+        // 命中按钮时优先触发其打卡动作，不会走 widgetURL）。
+        content
+            .padding(.horizontal, 13)
+            .padding(.top, 13)
+            .padding(.bottom, 9)
+            .widgetURL(SelfDisciplineDeepLink.url)
     }
 
     @ViewBuilder private var content: some View {

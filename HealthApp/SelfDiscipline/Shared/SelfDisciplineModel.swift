@@ -7,6 +7,18 @@
 
 import Foundation
 
+/// 自律打卡深链：点击桌面小组件空白区域跳转「我的 → 自律打卡」。
+/// 单一来源，App 与 Widget 两端共用，避免字符串写错对不上。
+enum SelfDisciplineDeepLink {
+    /// 自定义 scheme 链接。Widget 内的链接由系统直接投递给宿主 App，无需在 Info.plist 注册 scheme。
+    static let url = URL(string: "coachduck://self-discipline")!
+
+    /// 判断一个被 onOpenURL 接收的链接是否为「打开自律打卡」。
+    static func matches(_ incoming: URL) -> Bool {
+        incoming.scheme == url.scheme && incoming.host == url.host
+    }
+}
+
 /// 自律打卡任务（三个固定时段）。
 enum CheckInTask: String, CaseIterable, Codable, Identifiable {
     case exercise    // 运动

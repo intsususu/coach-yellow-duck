@@ -15,7 +15,6 @@ struct ProfileView: View {
     @State private var showsHealthImport = false
     @State private var showsFoodCalorie = false
     @State private var showsTrainingPlan = false
-    @State private var showsSelfDiscipline = false
     @State private var currentWeight: Double?
 
     /// 沉浸式渐变高度：顶部主色渐隐到页面底色，约过渡到屏幕中部。
@@ -93,9 +92,6 @@ struct ProfileView: View {
             }
             .navigationDestination(isPresented: $showsTrainingPlan) {
                 TrainingPlanView()
-            }
-            .navigationDestination(isPresented: $showsSelfDiscipline) {
-                SelfDisciplineView()
             }
             .task {
                 let samples = await appState.repository.weightSeries(range: .week)
@@ -226,7 +222,7 @@ struct ProfileView: View {
             }
             settingDivider
             settingRow(icon: "checkmark.seal.fill", title: "自律打卡", value: "打卡 ›", tint: .successGreen) {
-                showsSelfDiscipline = true
+                appState.opensSelfDiscipline = true
             }
         }
     }

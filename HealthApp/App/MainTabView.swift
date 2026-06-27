@@ -43,6 +43,11 @@ struct MainTabView: View {
                     .tag(Tab.profile)
             }
             .tint(.brandBlue)
+            // 自律打卡（「我的」入口与桌面小组件深链共用）进入 App 最外层导航栈，
+            // 直接盖在当前页面上打开，不经过「我的」Tab。
+            .navigationDestination(isPresented: $appState.opensSelfDiscipline) {
+                SelfDisciplineView()
+            }
             // 综合分析进入 App 最外层原生导航栈，交互式返回时可实时露出来源页面。
             .navigationDestination(isPresented: $appState.showsAnalysis) {
                 if let report = appState.initialAnalysisReport {
