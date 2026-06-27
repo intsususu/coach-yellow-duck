@@ -16,6 +16,8 @@ struct SelfDisciplineView: View {
     @State private var draftStates: [CheckInTask: Bool] = [:]
     @State private var autoExerciseDays: Set<Date> = []
     @State private var recordKeys: Set<CheckInRecordKey> = []
+    /// 每项每周目标打卡次数（达成即当周 100%）。
+    @State private var weeklyTargets: [CheckInTask: Int] = [:]
     /// 每次写入后自增以触发重算（CheckInStore 为值类型，无自动发布）。
     @State private var revision = 0
     @Environment(\.scenePhase) private var scenePhase
@@ -36,28 +38,9 @@ struct SelfDisciplineView: View {
         calendar.isDate(selectedDay, inSameDayAs: today)
     }
 
-    // MARK: - 打卡统计（本周 / 本月完成数，基于今天所在周/月）
-
-    private var weekCompletedCount: Int {
-        guard let interval = calendar.dateInterval(of: .weekOfYear, for: today) else { return 0 }
-        return recordKeys.filter { interval.contains($0.day) }.count
-    }
-
-    private var weekExpectedCount: Int { 7 * CheckInTask.allCases.count }
-
-    private var monthCompletedCount: Int {
-        guard let interval = calendar.dateInterval(of: .month, for: today) else { return 0 }
-        return recordKeys.filter { interval.contains($0.day) }.count
-    }
-
-    private var monthExpectedCount: Int {
-        let days = calendar.range(of: .day, in: .month, for: today)?.count ?? 30
-        return days * CheckInTask.allCases.count
-    }
-
-    private var showsFatigueWarning: Bool {
-        SelfDisciplineSchedule.activeTask(at: Date(), calendar: calendar) == .exercise
-            && weeklyCount(.exercise, weekContaining: today) > CheckInStore.exerciseFatigueThreshold
+    /// 某任务的每周目标次数；未加载到时回退默认值。
+    private func target(for task: CheckInTask) -> Int {
+        weeklyTargets[task] ?? CheckInStore.defaultWeeklyTarget
     }
 
     private var monthTitle: String {
@@ -68,10 +51,9 @@ struct SelfDisciplineView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                statsCard
                 monthCalendarCard
                 dayEditorCard
-                rulesCard
+                configCard
             }
             .padding(16)
         }
@@ -102,54 +84,6 @@ struct SelfDisciplineView: View {
                 Task { await syncAutoExerciseCheckIns() }
             }
         }
-    }
-
-    // MARK: - 打卡统计
-
-    private var statsCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("打卡统计")
-                .font(.system(size: 18, weight: .heavy))
-                .foregroundColor(.textPrimary)
-
-            HStack(spacing: 12) {
-                statTile(title: "本周完成打卡", value: weekCompletedCount, total: weekExpectedCount)
-                statTile(title: "本月完成打卡", value: monthCompletedCount, total: monthExpectedCount)
-            }
-
-            if showsFatigueWarning {
-                Label(SelfDisciplineSnapshot.fatigueMessage, systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.warningAmber)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 9)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.warningAmber.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            }
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity)
-        .background(Color.cardBg, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-
-    private func statTile(title: String, value: Int, total: Int) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.textSecondary)
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text("\(value)")
-                    .font(.system(size: 26, weight: .heavy))
-                    .foregroundColor(.successGreen)
-                Text("/\(total)")
-                    .font(.system(size: 15, weight: .heavy))
-                    .foregroundColor(.textMuted)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(Color.appBg.opacity(0.65), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     // MARK: - 月历
@@ -237,28 +171,31 @@ struct SelfDisciplineView: View {
         .background(Color.cardBg, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
-    // MARK: - 规则说明
+    // MARK: - 打卡配置
 
-    private var rulesCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("打卡时段")
-                .font(.system(size: 14, weight: .bold))
+    private var configCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("打卡配置")
+                .font(.system(size: 18, weight: .heavy))
                 .foregroundColor(.textPrimary)
-            ForEach(CheckInTask.allCases) { task in
-                HStack(spacing: 8) {
-                    Image(systemName: task.iconName)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(task.tint)
-                        .frame(width: 18)
-                    Text(task.title)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.textPrimary)
-                    Spacer()
-                    Text(task.windowText)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.textSecondary)
+
+            Text("时段暂不可调整；可设置每项每周的目标次数，达成即当周 100%。")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.textSecondary)
+
+            VStack(spacing: 8) {
+                ForEach(CheckInTask.allCases) { task in
+                    CheckInTargetRow(
+                        task: task,
+                        target: Binding(
+                            get: { target(for: task) },
+                            set: { setWeeklyTarget($0, for: task) }
+                        ),
+                        range: CheckInStore.weeklyTargetRange
+                    )
                 }
             }
+
             Text("运动每周超过 5 次，运动时段将提示「注意疲劳管理」。")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundColor(.textMuted)
@@ -282,6 +219,15 @@ struct SelfDisciplineView: View {
         let keys = Self.recordKeys(from: store.load(), calendar: calendar)
         recordKeys = keys
         draftStates = states(on: selectedDay, using: keys, autoDays: autoDays)
+        weeklyTargets = Dictionary(uniqueKeysWithValues: CheckInTask.allCases.map { ($0, store.weeklyTarget(for: $0)) })
+    }
+
+    private func setWeeklyTarget(_ count: Int, for task: CheckInTask) {
+        let clamped = min(max(count, CheckInStore.weeklyTargetRange.lowerBound), CheckInStore.weeklyTargetRange.upperBound)
+        guard weeklyTargets[task] != clamped else { return }
+        weeklyTargets[task] = clamped
+        store.setWeeklyTarget(clamped, for: task)
+        revision += 1
     }
 
     private func setTask(_ task: CheckInTask, checked: Bool) {
@@ -367,13 +313,6 @@ struct SelfDisciplineView: View {
 
     private func isAutoExercise(_ task: CheckInTask, on day: Date) -> Bool {
         task == .exercise && autoExerciseDays.contains(normalizedDay(day))
-    }
-
-    private func weeklyCount(_ task: CheckInTask, weekContaining day: Date) -> Int {
-        guard let interval = calendar.dateInterval(of: .weekOfYear, for: day) else { return 0 }
-        return recordKeys.filter { key in
-            key.task == task && interval.contains(key.day)
-        }.count
     }
 
     private func normalizedDay(_ date: Date) -> Date {
@@ -517,6 +456,45 @@ private struct CheckInEditorRow: View {
             Toggle("", isOn: $isChecked)
                 .labelsHidden()
                 .tint(task.tint)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(minHeight: 54)
+        .background(Color.appBg, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.hairline, lineWidth: 1)
+        )
+    }
+}
+
+/// 打卡配置行：左侧任务名 + 只读时段，右侧步进器设置每周目标次数。
+private struct CheckInTargetRow: View {
+    let task: CheckInTask
+    @Binding var target: Int
+    let range: ClosedRange<Int>
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(task.tint)
+                .frame(width: 11, height: 11)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(task.title)
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundColor(.textPrimary)
+                Text(task.windowText)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.textSecondary)
+            }
+            Spacer()
+            Stepper(value: $target, in: range) {
+                Text("\(target) 次/周")
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundColor(.textPrimary)
+                    .monospacedDigit()
+            }
+            .fixedSize()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)

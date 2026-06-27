@@ -305,10 +305,12 @@
       content: "";
       position: absolute;
       inset: 0;
+      /* 小号：白色只在插图左端柔化（皿/桌沿），透明点收在 54% 之前，鸭子保持清晰。 */
       background: linear-gradient(90deg,
         rgba(255, 255, 255, 0.96) 0%,
-        rgba(255, 255, 255, 0.78) 26%,
-        rgba(255, 255, 255, 0) 50%);
+        rgba(255, 255, 255, 0.82) 22%,
+        rgba(255, 255, 255, 0.32) 42%,
+        rgba(255, 255, 255, 0) 54%);
       z-index: -1;
     }
 
@@ -815,7 +817,7 @@
               <div class="small-spacer-a"></div>
               <div class="small-title" style="color: #9aa1ab;">自律打卡</div>
               <div class="small-spacer-b"></div>
-              <div class="small-total" style="font-size: 24px;"><span style="color: #15803d;">${neutral.weekDone}</span><span style="color: #9aa1ab;">/${neutral.weekExpected}</span></div>
+              <div class="small-total" style="font-size: 18px;"><span style="color: #15803d;">${neutral.weekDone}</span><span style="color: #9aa1ab;">/${neutral.weekExpected}</span></div>
               <div class="small-spacer-c"></div>
               ${renderWeekRow(neutral)}
             </div>
@@ -867,7 +869,7 @@
                 <div class="small-spacer-a"></div>
                 <div class="small-title" style="color: #9aa1ab;">自律打卡</div>
                 <div class="small-spacer-b"></div>
-                <div class="small-total" style="font-size: 24px;"><span style="color: #15803d;">${neutral.weekDone}</span><span style="color: #9aa1ab;">/${neutral.weekExpected}</span></div>
+                <div class="small-total" style="font-size: 18px;"><span style="color: #15803d;">${neutral.weekDone}</span><span style="color: #9aa1ab;">/${neutral.weekExpected}</span></div>
                 <div class="small-spacer-c"></div>
               </div>
               ${renderCalendar(monthData.neutral, neutral.tint)}

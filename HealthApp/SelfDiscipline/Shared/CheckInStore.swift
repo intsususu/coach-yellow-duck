@@ -17,9 +17,15 @@ struct CheckInStore {
     /// App Group 标识；主 App 与 Widget 的 entitlements 必须一致。
     static let appGroupID = "group.com.xltc.sdlyc"
     static let storageKey = "selfdiscipline.checkins.v1"
+    /// 每周每项目标打卡次数（达成视为当周 100%）的存储键。
+    static let weeklyTargetsKey = "selfdiscipline.weeklytargets.v1"
 
     /// 运动「疲劳管理」阈值：本周打卡超过 5 次即提示。
     static let exerciseFatigueThreshold = 5
+
+    /// 每周目标次数的允许范围（1～7 次/周）与默认值。
+    static let weeklyTargetRange = 1...7
+    static let defaultWeeklyTarget = 7
 
     private let defaults: UserDefaults
     private let calendar: Calendar
@@ -97,6 +103,31 @@ struct CheckInStore {
             }
             return (task, marks)
         }
+    }
+
+    // MARK: - 每周目标次数
+
+    /// 某任务的每周目标打卡次数（达成即当周 100%）。未配置时取默认值，并夹到允许范围。
+    func weeklyTarget(for task: CheckInTask) -> Int {
+        let stored = loadWeeklyTargets()[task.rawValue] ?? Self.defaultWeeklyTarget
+        return min(max(stored, Self.weeklyTargetRange.lowerBound), Self.weeklyTargetRange.upperBound)
+    }
+
+    /// 设置某任务的每周目标打卡次数（自动夹到 1～7）。
+    func setWeeklyTarget(_ count: Int, for task: CheckInTask) {
+        let clamped = min(max(count, Self.weeklyTargetRange.lowerBound), Self.weeklyTargetRange.upperBound)
+        var targets = loadWeeklyTargets()
+        targets[task.rawValue] = clamped
+        guard let data = try? JSONEncoder().encode(targets) else { return }
+        defaults.set(data, forKey: Self.weeklyTargetsKey)
+    }
+
+    private func loadWeeklyTargets() -> [String: Int] {
+        guard let data = defaults.data(forKey: Self.weeklyTargetsKey),
+              let targets = try? JSONDecoder().decode([String: Int].self, from: data) else {
+            return [:]
+        }
+        return targets
     }
 
     // MARK: - 写

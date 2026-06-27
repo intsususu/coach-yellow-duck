@@ -63,6 +63,24 @@ struct CheckInEntry: TimelineEntry {
 }
 
 struct CheckInProvider: TimelineProvider {
+    #if DEBUG
+    /// DEBUG 预览用：把「当前时刻」固定到今天的某个分钟数（自 00:00 起），
+    /// 从而强制呈现对应时段的状态，便于在模拟器一次性把各种状态都加到桌面对比。
+    var debugForcedMinutes: Int? = nil
+    #endif
+
+    /// 实际取数用的时刻：正常取真实 now；DEBUG 强制态时固定到今天的指定时分。
+    private func resolvedDate(_ now: Date = Date()) -> Date {
+        #if DEBUG
+        if let minutes = debugForcedMinutes {
+            let cal = SelfDisciplineSchedule.calendar
+            let base = cal.startOfDay(for: now)
+            return cal.date(byAdding: .minute, value: minutes, to: base) ?? now
+        }
+        #endif
+        return now
+    }
+
     private func entry(for date: Date) -> CheckInEntry {
         let store = CheckInStore()
         let snap = SelfDisciplineSnapshot.make(now: date, store: store)
@@ -107,16 +125,23 @@ struct CheckInProvider: TimelineProvider {
         return (rows, offset, max((components.day ?? 1) - 1, 0))
     }
 
-    func placeholder(in context: Context) -> CheckInEntry { entry(for: Date()) }
+    func placeholder(in context: Context) -> CheckInEntry { entry(for: resolvedDate()) }
 
     func getSnapshot(in context: Context, completion: @escaping (CheckInEntry) -> Void) {
-        completion(entry(for: Date()))
+        completion(entry(for: resolvedDate()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<CheckInEntry>) -> Void) {
-        let now = Date()
-        let policy: TimelineReloadPolicy = .after(Self.nextBoundary(after: now))
-        completion(Timeline(entries: [entry(for: now)], policy: policy))
+        let date = resolvedDate()
+        #if DEBUG
+        if debugForcedMinutes != nil {
+            // 强制态：保持固定，不随真实时间翻面。
+            completion(Timeline(entries: [entry(for: date)], policy: .never))
+            return
+        }
+        #endif
+        let policy: TimelineReloadPolicy = .after(Self.nextBoundary(after: date))
+        completion(Timeline(entries: [entry(for: date)], policy: policy))
     }
 
     /// 三个时段所有起止点中，晚于 `date` 的最近一个时刻。
@@ -138,21 +163,16 @@ struct SelfDisciplineBackground: View {
     @Environment(\.widgetFamily) private var family
     let entry: CheckInEntry
 
-    /// 非时段中性卡的插图资源名。
-    static let neutralWeekdayAssetName = "bg_weekday"
-    static let neutralWeekendAssetName = "bg_default"
+    /// 非时段中性卡的插图资源名（工作日 / 周末统一用同一张）。
+    static let neutralAssetName = "bg_default"
 
     var body: some View {
         // 小号与中号都按原型使用白底插图卡，只有插图缺失时才落到柔和渐变。
         if let task = entry.snapshot.activeTask {
             lightImageCard(asset: task.bgAssetName, fallbackTint: task.widgetTint, cornerSymbol: task.cornerSymbol)
         } else {
-            lightImageCard(asset: neutralAssetName, fallbackTint: .brandBlue, cornerSymbol: "sparkles")
+            lightImageCard(asset: Self.neutralAssetName, fallbackTint: .brandBlue, cornerSymbol: "sparkles")
         }
-    }
-
-    private var neutralAssetName: String {
-        entry.todayIndex >= 5 ? Self.neutralWeekendAssetName : Self.neutralWeekdayAssetName
     }
 
     // 白底浅色卡 + 插图（白底）+ 左侧白色渐变，保证左栏深色文字清晰。
@@ -193,7 +213,7 @@ struct SelfDisciplineBackground: View {
         if family == .systemMedium {
             return CGPoint(x: size.width - 157 - imageSize / 2 + imageSize * 0.1, y: size.height / 2)
         }
-        return CGPoint(x: size.width + 35 - imageSize / 2,
+        return CGPoint(x: size.width + 45 - imageSize / 2,
                        y: size.height / 2 - 10)
             .applying(CGAffineTransform(translationX: -imageSize * 0.2, y: 0))
     }
@@ -206,9 +226,11 @@ struct SelfDisciplineBackground: View {
                 .init(color: .white.opacity(0.0), location: 0.40)
             ]
             : [
+                // 小号：白色只在插图左端柔化（皿/桌沿），透明点收在 0.54 之前，鸭子本体保持清晰。
                 .init(color: .white.opacity(0.96), location: 0.0),
-                .init(color: .white.opacity(0.78), location: 0.26),
-                .init(color: .white.opacity(0.0), location: 0.50)
+                .init(color: .white.opacity(0.82), location: 0.22),
+                .init(color: .white.opacity(0.32), location: 0.42),
+                .init(color: .white.opacity(0.0), location: 0.54)
             ]
         return LinearGradient(stops: stops, startPoint: .leading, endPoint: .trailing)
     }
@@ -390,10 +412,10 @@ struct SelfDisciplineEntryView: View {
 
             HStack(alignment: .firstTextBaseline, spacing: 1) {
                 Text("\(entry.snapshot.weekDone)")
-                    .font(.system(size: 24, weight: .black))
+                    .font(.system(size: 18, weight: .black))
                     .foregroundColor(.successGreen)
                 Text("/\(entry.snapshot.weekExpected)")
-                    .font(.system(size: 24, weight: .black))
+                    .font(.system(size: 18, weight: .black))
                     .foregroundColor(.textMuted)
             }
             .lineLimit(1)
@@ -468,10 +490,10 @@ struct SelfDisciplineEntryView: View {
 
                 HStack(alignment: .firstTextBaseline, spacing: 1) {
                     Text("\(entry.snapshot.weekDone)")
-                        .font(.system(size: 24, weight: .black))
+                        .font(.system(size: 18, weight: .black))
                         .foregroundColor(.successGreen)
                     Text("/\(entry.snapshot.weekExpected)")
-                        .font(.system(size: 24, weight: .black))
+                        .font(.system(size: 18, weight: .black))
                         .foregroundColor(.textMuted)
                 }
                 .lineLimit(1)
@@ -555,3 +577,28 @@ struct SelfDisciplineWidget: Widget {
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
+
+#if DEBUG
+/// DEBUG 专用：强制呈现某一状态的预览小组件。仅在 Debug 构建编入，
+/// 用于在模拟器把「运动 / 别吃夜宵 / 阅读早睡 / 非时段」4 种状态一次性加到桌面对比。
+struct SelfDisciplinePreviewWidget: Widget {
+    // 带默认值，使全默认的成员初始化器同时满足 Widget 协议要求的 init()。
+    var kind: String = "SDPreview"
+    var displayName: String = "DEBUG 预览"
+    /// 自 00:00 起的分钟数；落在哪个时段就强制呈现哪个状态（落在时段外即非时段中性态）。
+    var forcedMinutes: Int = 0
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: CheckInProvider(debugForcedMinutes: forcedMinutes)) { entry in
+            SelfDisciplineEntryView(entry: entry)
+                .containerBackground(for: .widget) {
+                    SelfDisciplineBackground(entry: entry)
+                }
+        }
+        .contentMarginsDisabled()
+        .configurationDisplayName(displayName)
+        .description("DEBUG 预览：固定展示该状态，不随时间变化。")
+        .supportedFamilies([.systemSmall, .systemMedium])
+    }
+}
+#endif

@@ -32,14 +32,14 @@
 | `bg_exercise` | 运动 `exercise` | brandBlue → sleepIndigo | `sun.max.fill` |
 | `bg_noSnack` | 别吃夜宵 `noSnack` | sleepDeep → textPrimary | `moon.fill` |
 | `bg_readSleep` | 阅读早睡 `readSleep` | sleepIndigo → sleepDeep | `moon.stars.fill` |
-| `bg_weekday` | 非时段 · **工作日**（周一~周五） | cardBg → brandBlue.18 | `sparkles` |
-| `bg_default` | 非时段 · **周末**（周六/周日） | cardBg → brandBlue.18 | `sparkles` |
+| `bg_default` | 非时段 `neutral`（工作日 / 周末统一） | cardBg → brandBlue.18 | `sparkles` |
 
-> 非时段按 `entry.todayIndex >= 5` 选周末/工作日图（5=周六、6=周日）。
+> 非时段不再区分工作日/周末，统一使用 `bg_default`（china）。
 > 替换时只需替换 `*.imageset` 里的 png 并保持文件名一致；建议沿用白底、主体偏右构图，避免左栏文字区被遮挡。
+> 注意 WidgetKit 对入包图片有面积上限（约 1,069,415 px²），单图建议 ≤ 720×720。
 
 ### 2.2 原型 HTML 用图（仅预览，不入包）
-位于 `docs/widget/`：`fitness.png`(运动)、`yexiao.png`(夜宵)、`night.png`(早睡)、`china.png`(非时段工作日)、`superman.png`(非时段周末)。原型与 Asset 一一对应，改设计稿时同步更新即可。
+位于 `docs/widget/`：`fitness.png`(运动)、`yexiao.png`(夜宵)、`night.png`(早睡)、`china.png`(非时段)。`superman.png` 原为周末态，现已不再使用。
 
 ---
 
@@ -51,7 +51,7 @@
 | --- | --- | --- |
 | 插图尺寸 `imageSize` | 129×129 | 147×147 |
 | 插图位置 | 贴右、略偏上（中心 `x≈width+35-imageSize/2` 再左移 `imageSize*0.2`，`y=高/2-10`） | 嵌在文字与日历之间（`x=width-157-imageSize/2+imageSize*0.1`，`y=高/2`） |
-| 渐变遮罩 stops | 白0.96@0 → 白0.78@0.26 → 透明@0.50 | 白0.95@0 → 白0.90@0.18 → 透明@0.40 |
+| 渐变遮罩 stops | 白0.96@0 → 白0.82@0.22 → 白0.32@0.42 → 透明@0.54（仅左端柔化，鸭子保持清晰） | 白0.95@0 → 白0.90@0.18 → 透明@0.40 |
 | 渐变方向 | leading → trailing | 同 |
 
 > HTML 原型用 `background-size` + `background-position` + `::after` 渐变模拟同一效果（见 `.widget.image-card::before/::after`、`.widget.medium.image-card::before`）。
@@ -135,7 +135,7 @@
 `cardBg #FFFFFF`、`textPrimary #1A1F29`、`textSecondary #6B7280`、`textMuted #9AA1AB`、`brandBlue #2563EB`、`sleepDeep #5856D6`。
 
 ### 字号速查
-30/24（数字统计）· 18 black（标题）· 11（时段文字 / 按钮）· 9.5（疲劳提示）· 8（周历星期）· 7.5（月历表头）。
+18 black（标题 / 非时段数字统计 X/Y）· 11（时段文字 / 按钮）· 9.5（疲劳提示）· 8（周历星期）· 7.5（月历表头）。
 
 ---
 
