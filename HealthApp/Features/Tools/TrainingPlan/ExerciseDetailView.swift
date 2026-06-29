@@ -2,6 +2,7 @@
 // 小工具 · 训练计划：动作详情。
 
 import SwiftUI
+import UIKit
 
 struct ExerciseDetailView: View {
     let exercise: Exercise
@@ -29,7 +30,7 @@ struct ExerciseDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 14) {
-                videoCard
+                mediaCard
                 titleCard
                 muscleMapCard
                 if !exercise.points.isEmpty {
@@ -46,32 +47,47 @@ struct ExerciseDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private var videoCard: some View {
+    /// 演示图（Assets 中以英文名命名）。有图则展示动作示意图，否则降级为视频占位。
+    private var mediaCard: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.textPrimary)
+            if let illustration = UIImage(named: exercise.image) {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.cardBg)
 
-            VStack(spacing: 10) {
-                Image(systemName: selectedVideo.isEmpty ? "video.slash" : "play.circle.fill")
-                    .font(.system(size: 42, weight: .semibold))
-                    .foregroundColor(.white)
+                Image(uiImage: illustration)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(14)
+            } else {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.textPrimary)
 
-                Text(selectedVideo.isEmpty ? "演示视频待补充" : "\(isFemale ? "女版" : "男版")演示视频占位")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.white)
+                VStack(spacing: 10) {
+                    Image(systemName: selectedVideo.isEmpty ? "video.slash" : "play.circle.fill")
+                        .font(.system(size: 42, weight: .semibold))
+                        .foregroundColor(.white)
 
-                if !selectedVideo.isEmpty {
-                    Text("素材到位后自动替换为视频播放")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.65))
+                    Text(selectedVideo.isEmpty ? "演示视频待补充" : "\(isFemale ? "女版" : "男版")演示视频占位")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+
+                    if !selectedVideo.isEmpty {
+                        Text("素材到位后自动替换为视频播放")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.white.opacity(0.65))
+                    }
                 }
+                .padding(18)
             }
-            .padding(18)
         }
         .aspectRatio(16.0 / 10.0, contentMode: .fit)
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.hairline, lineWidth: exercise.hasImage ? 1 : 0)
+        )
         .shadow(color: Color.black.opacity(0.10), radius: 12, x: 0, y: 4)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text(selectedVideo.isEmpty ? "演示视频待补充" : "演示视频占位"))
+        .accessibilityLabel(Text(exercise.hasImage ? "\(exercise.name) 动作示意图" : (selectedVideo.isEmpty ? "演示视频待补充" : "演示视频占位")))
     }
 
     private var titleCard: some View {

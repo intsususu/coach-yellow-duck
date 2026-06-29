@@ -12,11 +12,14 @@ struct TrainingPlanView: View {
     @State private var selectedPart: StretchPart = .neck
     @State private var showSearch = false
     @State private var weightKg: Double = 0
+    @State private var presetsExpanded = false
+
+    private static let collapsedPresetCount = 2
 
     private static let allTypes = "全部"
     private static let topAnchor = "trainingPlanTop"
 
-    private let categories: [MuscleCategory] = [.chest, .shoulders, .back, .lower, .core, .arms, .functional]
+    private let categories: [MuscleCategory] = [.chest, .shoulders, .back, .lower, .core, .arms]
 
     private var isFemale: Bool {
         profileStore.profile.gender == .female
@@ -63,6 +66,7 @@ struct TrainingPlanView: View {
                 .onChange(of: mode) { _, _ in scrollToTop(proxy) }
                 .onChange(of: selectedCategory) { _, _ in
                     selectedType = Self.allTypes
+                    presetsExpanded = false
                     scrollToTop(proxy)
                 }
                 .onChange(of: selectedType) { _, _ in scrollToTop(proxy) }
@@ -161,14 +165,36 @@ struct TrainingPlanView: View {
     }
 
     private var trainingPlanSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let presets = categoryPresets
+        let canExpand = presets.count > Self.collapsedPresetCount
+        let shown = (presetsExpanded || !canExpand)
+            ? presets
+            : Array(presets.prefix(Self.collapsedPresetCount))
+
+        return VStack(alignment: .leading, spacing: 10) {
             SectionTitle(title: "训练计划") {
-                Text("\(categoryPresets.count) 套")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.textMuted)
+                if canExpand {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { presetsExpanded.toggle() }
+                    } label: {
+                        HStack(spacing: 3) {
+                            Text("\(presets.count) 套")
+                                .font(.system(size: 12, weight: .semibold))
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11, weight: .bold))
+                                .rotationEffect(.degrees(presetsExpanded ? 90 : 0))
+                        }
+                        .foregroundColor(accent)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Text("\(presets.count) 套")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.textMuted)
+                }
             }
             VStack(spacing: 8) {
-                ForEach(categoryPresets) { preset in
+                ForEach(shown) { preset in
                     NavigationLink {
                         TrainingPlanDetailView(preset: preset)
                     } label: {
@@ -181,27 +207,26 @@ struct TrainingPlanView: View {
     }
 
     private func planCard(_ preset: TrainingPlanPreset) -> some View {
-        HStack(spacing: 12) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(accent.opacity(0.12))
-                    .frame(width: 52, height: 52)
-                Image(systemName: "list.bullet.rectangle.portrait.fill")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(accent)
-            }
-
+        let levelColor = Self.levelColor(preset.level)
+        return HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(preset.title)
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(.textPrimary)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(preset.level)
+                        .font(.system(size: 10, weight: .heavy))
+                        .foregroundColor(levelColor)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2.5)
+                        .background(Capsule().fill(levelColor.opacity(0.14)))
+                    Text(preset.title)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.textPrimary)
+                        .lineLimit(1)
+                }
                 Text(preset.subtitle)
                     .font(.system(size: 11.5, weight: .medium))
                     .foregroundColor(.textSecondary)
                     .lineLimit(1)
                 HStack(spacing: 5) {
-                    ExerciseTag(title: preset.level, foreground: accent, background: accent.opacity(0.10))
                     ExerciseTag(title: "\(preset.exercises.count) 动作")
                     ExerciseTag(title: "约 \(preset.durationMin) 分钟")
                 }
@@ -214,9 +239,27 @@ struct TrainingPlanView: View {
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundColor(.textMuted.opacity(0.7))
         }
-        .padding(11)
+        .padding(13)
         .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Color.cardBg))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Color.hairline, lineWidth: 1))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.hairline, lineWidth: 1)
+        )
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(levelColor)
+                .frame(width: 3.5)
+                .padding(.vertical, 12)
+        }
+    }
+
+    /// 难度档颜色：入门绿、进阶橙。
+    private static func levelColor(_ level: String) -> Color {
+        switch level {
+        case "入门": return .successGreen
+        case "进阶": return .exerciseOrange
+        default:    return .brandBlue
+        }
     }
 
     private var typeChips: some View {
