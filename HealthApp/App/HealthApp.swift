@@ -1,7 +1,7 @@
 // HealthApp.swift
 // @main 入口。按「运行环境」注入数据源（不再按 Debug/Release 构建类型）：
 //   · 模拟器 —— 纯 MockHealthRepository，离线 mock 数据，不连接真实 HealthKit；
-//   · 真机（无论 Debug/Release）—— HealthKitRepository（真实数据）+ EventRepository（本机事件，无 mock）。
+//   · 真机（无论 Debug/Release）—— HealthKitRepository（真实数据）+ EventRepository（本机事件，无 mock 注入）。
 // 改用 targetEnvironment(simulator) 是因为 Xcode「运行」默认走 Debug 配置，若按 DEBUG 判定，
 // 真机调试运行会错误地显示模拟数据。
 
@@ -11,7 +11,7 @@ import SwiftUI
 enum AppConfig {
     /// 是否使用纯 Mock 数据源。
     /// 模拟器为 true：供 Claude/Codex 离线调试，无需真实 HealthKit；
-    /// 真机为 false：仅真实 HealthKit，mock 代码不编入真机二进制。
+    /// 真机为 false：仅注入真实 HealthKit；Release 真机二进制不编入 mock 类型。
     #if targetEnvironment(simulator)
     static let useMockData = true
     #else

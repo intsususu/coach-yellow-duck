@@ -1,11 +1,11 @@
 // MockHealthRepository.swift
-// 调试专用数据源：内置 PRD §6.2 全部 mock 数组（原样数值）。
-// 整体以 #if DEBUG 包裹 —— 仅供 Claude/Codex 离线开发，绝不编入 Release（真机正式）二进制，
-// 保证「正式使用时不出现 mock」。真机正式构建一律走 HealthKitRepository + EventRepository。
+// 模拟器/调试专用数据源：内置 PRD §6.2 全部 mock 数组（原样数值）。
+// 编入 Debug 或模拟器构建，确保 Release 模拟器也能离线验证；
+// Release 真机正式二进制不包含本类型，正式使用一律走 HealthKitRepository + EventRepository。
 
 import Foundation
 
-#if DEBUG
+#if DEBUG || targetEnvironment(simulator)
 final class MockHealthRepository: HealthDataRepository {
 
     /// 事件本机持久化（首次启动落种子；saveEvent 走 upsert）。

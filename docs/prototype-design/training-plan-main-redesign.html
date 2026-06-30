@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>训练计划 · 主页面重设计</title>
+  <style>
+    :root {
+      --bg: #f5f6f8;
+      --card: #ffffff;
+      --text: #1a1f29;
+      --secondary: #6b7280;
+      --muted: #9aa1ab;
+      --hairline: #ededf0;
+      --orange: #ea580c;
+      --orange-soft: #fff4ed;
+      --shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      background: none;
+      color: inherit;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .screen {
+      width: min(100%, 430px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 16px 16px 72px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      height: 44px;
+      margin-bottom: 10px;
+    }
+
+    .page-title {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 850;
+      letter-spacing: 0;
+    }
+
+    .search-button {
+      height: 34px;
+      padding: 0 14px;
+      border-radius: 17px;
+      color: var(--secondary);
+      background: var(--card);
+      box-shadow: inset 0 0 0 1px var(--hairline);
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .mode-switch {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 4px;
+      border-radius: 18px;
+      background: #e9ebef;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    .mode-button {
+      height: 38px;
+      border-radius: 14px;
+      color: var(--secondary);
+      font-size: 14px;
+      font-weight: 760;
+    }
+
+    .mode-button.is-active {
+      color: var(--text);
+      background: var(--card);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+
+    .hero {
+      margin-top: 14px;
+      padding: 18px;
+      border-radius: 22px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-kicker {
+      color: var(--orange);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .hero-title {
+      margin: 8px 0 0;
+      font-size: 25px;
+      line-height: 1.16;
+      font-weight: 850;
+    }
+
+    .hero-copy {
+      margin: 7px 0 0;
+      color: var(--secondary);
+      font-size: 14px;
+      line-height: 1.45;
+      font-weight: 620;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .stat {
+      min-height: 58px;
+      padding: 10px;
+      border-radius: 14px;
+      background: var(--bg);
+    }
+
+    .stat strong {
+      display: block;
+      color: var(--text);
+      font-size: 18px;
+      line-height: 1.05;
+      font-weight: 850;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 680;
+      white-space: nowrap;
+    }
+
+    .section {
+      margin-top: 20px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+      font-weight: 850;
+    }
+
+    .section-head span,
+    .section-head button {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 720;
+      white-space: nowrap;
+    }
+
+    .rail {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .rail::-webkit-scrollbar {
+      display: none;
+    }
+
+    .chip {
+      flex: 0 0 auto;
+      height: 34px;
+      padding: 0 14px;
+      border-radius: 17px;
+      color: var(--secondary);
+      background: var(--card);
+      box-shadow: inset 0 0 0 1px var(--hairline);
+      font-size: 13px;
+      font-weight: 720;
+      white-space: nowrap;
+    }
+
+    .chip.is-active {
+      color: white;
+      background: var(--orange);
+      box-shadow: none;
+    }
+
+    .plan-rail {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .plan-rail::-webkit-scrollbar {
+      display: none;
+    }
+
+    .plan-card {
+      flex: 0 0 244px;
+      min-height: 132px;
+      padding: 14px;
+      border-radius: 18px;
+      text-align: left;
+      background: var(--card);
+      box-shadow: inset 0 0 0 1px var(--hairline);
+      scroll-snap-align: start;
+    }
+
+    .plan-card.is-selected {
+      box-shadow: inset 0 0 0 1px rgba(234, 88, 12, 0.38), 0 8px 22px rgba(15, 23, 42, 0.06);
+    }
+
+    .plan-card h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+      font-weight: 850;
+    }
+
+    .plan-card p {
+      margin: 5px 0 0;
+      color: var(--secondary);
+      font-size: 12px;
+      line-height: 1.35;
+      font-weight: 620;
+    }
+
+    .plan-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .micro {
+      display: inline-flex;
+      min-height: 25px;
+      align-items: center;
+      padding: 0 8px;
+      border-radius: 9px;
+      color: var(--secondary);
+      background: var(--bg);
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .micro.primary {
+      color: var(--orange);
+      background: var(--orange-soft);
+    }
+
+    .dots {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #d8dde6;
+    }
+
+    .dot.on {
+      background: currentColor;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .exercise-card {
+      display: grid;
+      grid-template-columns: 104px minmax(0, 1fr);
+      gap: 12px;
+      min-height: 104px;
+      padding: 10px;
+      border-radius: 18px;
+      text-align: left;
+      background: var(--card);
+      box-shadow: inset 0 0 0 1px var(--hairline);
+    }
+
+    .exercise-card:active,
+    .plan-card:active {
+      transform: scale(0.99);
+    }
+
+    .thumb {
+      width: 104px;
+      height: 84px;
+      overflow: hidden;
+      border-radius: 14px;
+      background: var(--orange-soft);
+    }
+
+    .thumb img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .exercise-copy {
+      min-width: 0;
+      padding: 4px 0;
+    }
+
+    .exercise-copy h3 {
+      margin: 0;
+      color: var(--text);
+      font-size: 17px;
+      line-height: 1.2;
+      font-weight: 820;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .exercise-copy p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 650;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .tag {
+      display: inline-flex;
+      min-height: 23px;
+      align-items: center;
+      padding: 0 8px;
+      border-radius: 8px;
+      color: var(--secondary);
+      background: var(--bg);
+      font-size: 11px;
+      line-height: 1;
+      font-weight: 740;
+    }
+
+    .tag.primary {
+      color: var(--orange);
+      background: var(--orange-soft);
+    }
+
+    .text-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .text-card {
+      padding: 14px;
+      border-radius: 16px;
+      text-align: left;
+      background: var(--card);
+      box-shadow: inset 0 0 0 1px var(--hairline);
+    }
+
+    .text-card h3 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.2;
+      font-weight: 780;
+    }
+
+    .text-card p {
+      margin: 6px 0 0;
+      color: var(--secondary);
+      font-size: 12px;
+      line-height: 1.35;
+      font-weight: 620;
+    }
+
+    .text-card .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .bottom-note {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 8;
+      padding: 10px 16px max(10px, env(safe-area-inset-bottom));
+      border-top: 1px solid rgba(237, 237, 240, 0.92);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: saturate(180%) blur(18px);
+      -webkit-backdrop-filter: saturate(180%) blur(18px);
+      font-size: 11px;
+      line-height: 1.35;
+      font-weight: 620;
+      text-align: center;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 64px;
+      z-index: 20;
+      transform: translateX(-50%) translateY(18px);
+      width: min(calc(100% - 32px), 360px);
+      padding: 12px 14px;
+      border-radius: 16px;
+      color: var(--text);
+      background: var(--card);
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+      font-size: 13px;
+      font-weight: 720;
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .search-sheet {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      background: rgba(15, 23, 42, 0.18);
+    }
+
+    .search-sheet.is-open {
+      display: block;
+    }
+
+    .sheet-panel {
+      width: min(100%, 430px);
+      margin: 0 auto;
+      min-height: 100%;
+      padding: 18px 16px;
+      background: var(--bg);
+    }
+
+    .search-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .search-input {
+      flex: 1 1 auto;
+      height: 42px;
+      min-width: 0;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 21px;
+      outline: none;
+      color: var(--text);
+      background: var(--card);
+      box-shadow: inset 0 0 0 1px var(--hairline);
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .cancel-button {
+      flex: 0 0 auto;
+      height: 38px;
+      padding: 0 8px;
+      color: var(--orange);
+      font-size: 14px;
+      font-weight: 760;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 374px) {
+      .screen {
+        padding-inline: 12px;
+      }
+
+      .exercise-card {
+        grid-template-columns: 96px minmax(0, 1fr);
+      }
+
+      .thumb {
+        width: 96px;
+        height: 80px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="screen">
+    <header class="topbar">
+      <h1 class="page-title">训练计划</h1>
+      <button class="search-button" type="button" data-search-open>搜索</button>
+    </header>
+
+    <nav class="mode-switch" aria-label="训练类型">
+      <button class="mode-button is-active" type="button" data-mode="strength">力量训练</button>
+      <button class="mode-button" type="button" data-mode="stretch">拉伸</button>
+      <button class="mode-button" type="button" data-mode="hiit">HIIT</button>
+    </nav>
+
+    <section class="hero" data-hero></section>
+    <div data-panel></div>
+  </main>
+
+  <div class="bottom-note">训练动作仅供参考，请量力而行，必要时在专业指导下进行</div>
+  <div class="toast" data-toast></div>
+
+  <aside class="search-sheet" data-search-sheet aria-label="搜索动作">
+    <div class="sheet-panel">
+      <div class="search-row">
+        <input class="search-input" type="search" placeholder="搜索动作、计划、部位" data-search-input>
+        <button class="cancel-button" type="button" data-search-close>取消</button>
+      </div>
+      <section class="section" style="margin-top: 0;">
+        <div class="section-head">
+          <h2>搜索结果</h2>
+          <span data-search-count>0 个</span>
+        </div>
+        <div class="list" data-search-results></div>
+      </section>
+    </div>
+  </aside>
+
+  <script>
+    const asset = (name) => `../../HealthApp/Assets.xcassets/${encodeURIComponent(name)}.imageset/${encodeURIComponent(name)}.png`;
+
+    const strength = {
+      chest: {
+        label: "胸部",
+        count: 25,
+        planCount: 4,
+        title: "胸部训练",
+        copy: "从推举到夹胸，按肌群目标快速进入计划或单动作库。",
+        filters: ["全部", "卧推 / 胸推", "飞鸟 / 夹胸", "俯卧撑"],
+        plans: [
+          { title: "胸部增肌基础", copy: "推举打底，全面刺激胸大肌", level: "入门", duration: "45 分钟", difficulty: 2, intensity: 3 },
+          { title: "徒手胸部塑形", copy: "零器械、新手、居家训练", level: "入门", duration: "30 分钟", difficulty: 1, intensity: 2 },
+          { title: "器械胸部训练", copy: "健身房新手、减脂训练", level: "入门", duration: "45 分钟", difficulty: 2, intensity: 3 },
+          { title: "胸部进阶强化", copy: "力量提升、胸部增肌进阶", level: "进阶", duration: "50 分钟", difficulty: 4, intensity: 5 }
+        ],
+        exercises: [
+          { name: "哑铃卧推", en: "Dumbbell Bench Press", type: "卧推 / 胸推", level: "中等", target: "胸大肌", image: asset("Dumbbell Bench Press") },
+          { name: "哑铃上斜卧推", en: "Dumbbell Incline Bench Press", type: "卧推 / 胸推", level: "中等", target: "胸大肌", image: asset("Dumbbell Incline Bench Press") },
+          { name: "绳索交叉夹胸", en: "Cable Crossover", type: "飞鸟 / 夹胸", level: "简单", target: "胸大肌", image: asset("Cable Crossover") },
+          { name: "俯卧撑", en: "Push Ups", type: "俯卧撑", level: "简单", target: "胸大肌", image: asset("Push Ups") },
+          { name: "杠铃卧推", en: "Barbell Bench Press", type: "卧推 / 胸推", level: "较难", target: "胸大肌", image: asset("Barbell Bench Press") },
+          { name: "器械推胸", en: "Lever Chest Press", type: "卧推 / 胸推", level: "简单", target: "胸大肌", image: asset("Lever Chest Press") }
+        ]
+      },
+      shoulders: {
+        label: "肩部",
+        count: 19,
+        planCount: 3,
+        title: "肩部训练",
+        copy: "前束、中束、后束分层筛选，适合围度与体态改善。",
+        filters: ["全部", "推举", "侧平举", "后束"],
+        plans: [
+          { title: "圆肩三角肌", copy: "前中后束兼顾，撑起肩线", level: "进阶", duration: "35 分钟", difficulty: 3, intensity: 4 },
+          { title: "肩部稳定与后束", copy: "改善圆肩，强化后链", level: "入门", duration: "30 分钟", difficulty: 2, intensity: 2 },
+          { title: "肩部围度塑形", copy: "推举打底 + 三向平举", level: "入门", duration: "30 分钟", difficulty: 2, intensity: 3 }
+        ],
+        exercises: [
+          { name: "哑铃坐姿推举", en: "Dumbbell Seated Shoulder Press", type: "推举", level: "中等", target: "三角肌", image: asset("Dumbbell Seated Shoulder Press") },
+          { name: "哑铃侧平举", en: "Dumbbell Lateral Raise", type: "侧平举", level: "简单", target: "三角肌中束", image: asset("Dumbbell Lateral Raise") }
+        ]
+      },
+      back: {
+        label: "背部",
+        count: 23,
+        planCount: 3,
+        title: "背部训练",
+        copy: "下拉、引体、划船按动作模式组织，便于快速组合。",
+        filters: ["全部", "引体 / 下拉", "划船"],
+        plans: [
+          { title: "背部宽厚基础", copy: "纵向下拉 + 横向划船", level: "进阶", duration: "45 分钟", difficulty: 4, intensity: 4 },
+          { title: "新手友好背部", copy: "有辅助也能练出背阔肌", level: "入门", duration: "35 分钟", difficulty: 2, intensity: 3 }
+        ],
+        exercises: [
+          { name: "引体向上", en: "Pull Up", type: "引体 / 下拉", level: "较难", target: "背阔肌", image: asset("Pull Up") },
+          { name: "哑铃俯身划船", en: "Dumbbell Bent Over Row", type: "划船", level: "中等", target: "背阔肌", image: asset("Dumbbell Bent Over Row") }
+        ]
+      },
+      lower: {
+        label: "下肢",
+        count: 21,
+        planCount: 3,
+        title: "下肢训练",
+        copy: "深蹲、弓步、臀腿孤立动作整合到同一工作流。",
+        filters: ["全部", "深蹲", "孤立"],
+        plans: [
+          { title: "下肢力量基础", copy: "深蹲硬拉打地基", level: "进阶", duration: "50 分钟", difficulty: 4, intensity: 4 },
+          { title: "居家腿臀", copy: "无器械，徒手练腿臀", level: "入门", duration: "25 分钟", difficulty: 1, intensity: 2 }
+        ],
+        exercises: [
+          { name: "徒手深蹲", en: "Air Squat", type: "深蹲", level: "简单", target: "股四头肌", image: asset("Air Squat") },
+          { name: "腿屈伸", en: "Leg Extension", type: "孤立", level: "简单", target: "股四头肌", image: asset("Leg Extension") }
+        ]
+      },
+      core: {
+        label: "核心",
+        count: 17,
+        planCount: 3,
+        title: "核心训练",
+        copy: "抗伸展、旋转、静力支撑动作按难度分层。",
+        filters: ["全部", "静力", "卷腹", "旋转"],
+        plans: [
+          { title: "腹肌雕刻", copy: "上下腹 + 腹斜肌全覆盖", level: "入门", duration: "20 分钟", difficulty: 2, intensity: 3 },
+          { title: "核心稳定", copy: "抗旋抗屈，保护腰椎", level: "入门", duration: "18 分钟", difficulty: 2, intensity: 2 }
+        ],
+        exercises: [
+          { name: "平板支撑", en: "Front Plank", type: "静力", level: "简单", target: "核心", image: asset("Front Plank") },
+          { name: "俄罗斯转体", en: "Russian Twist", type: "旋转", level: "中等", target: "腹斜肌", image: asset("Russian Twist") },
+          { name: "卷腹", en: "Curl up", type: "卷腹", level: "简单", target: "腹直肌", image: asset("Curl up") }
+        ]
+      },
+      arms: {
+        label: "手臂",
+        count: 18,
+        planCount: 3,
+        title: "手臂训练",
+        copy: "二头、三头与前臂动作按泵感和围度目标组织。",
+        filters: ["全部", "弯举", "三头"],
+        plans: [
+          { title: "二三头围度", copy: "弯举 + 下压，撑满袖口", level: "入门", duration: "30 分钟", difficulty: 2, intensity: 3 },
+          { title: "二头集中弯举", copy: "多角度弯举，堆叠二头围度", level: "入门", duration: "25 分钟", difficulty: 2, intensity: 3 }
+        ],
+        exercises: [
+          { name: "杠铃弯举", en: "Barbell Curl", type: "弯举", level: "中等", target: "肱二头肌", image: asset("Barbell Curl") },
+          { name: "哑铃二头弯举", en: "Dumbbell Biceps Curl", type: "弯举", level: "简单", target: "肱二头肌", image: asset("Dumbbell Biceps Curl") }
+        ]
+      }
+    };
+
+    const stretch = {
+      title: "拉伸与活动度",
+      copy: "按部位进入，卡片更轻，适合训练前后快速查找。",
+      parts: ["颈部", "肩部", "胸部", "背部", "髋部", "腿部"],
+      moves: [
+        { name: "门框胸肌拉伸", copy: "左右各 30 秒", tags: ["胸部", "静态"] },
+        { name: "肩前束放松", copy: "左右各 30 秒", tags: ["肩部", "放松"] },
+        { name: "猫牛式拉伸", copy: "60 秒", tags: ["背部", "活动度"] },
+        { name: "髋屈肌拉伸", copy: "左右各 45 秒", tags: ["髋部", "静态"] }
+      ]
+    };
+
+    const hiit = {
+      title: "HIIT 组合",
+      copy: "按强度分层，保留热量估算与循环数，信息密度更适合快速扫读。",
+      levels: ["入门", "进阶", "燃脂"],
+      workouts: [
+        { name: "入门燃脂循环", copy: "开合跳、深蹲、登山跑组合", tags: ["3 循环", "约 15 分钟", "≈ 180 千卡"] },
+        { name: "进阶心肺挑战", copy: "波比跳、弓步跳、平板支撑组合", tags: ["4 循环", "约 22 分钟", "≈ 280 千卡"] },
+        { name: "核心燃脂短训", copy: "登山跑、俄罗斯转体、卷腹", tags: ["3 循环", "约 18 分钟", "≈ 210 千卡"] }
+      ]
+    };
+
+    const state = {
+      mode: "strength",
+      category: "chest",
+      filter: "全部",
+      planIndex: 0
+    };
+
+    const hero = document.querySelector("[data-hero]");
+    const panel = document.querySelector("[data-panel]");
+    const toast = document.querySelector("[data-toast]");
+    const modeButtons = Array.from(document.querySelectorAll("[data-mode]"));
+    const searchSheet = document.querySelector("[data-search-sheet]");
+    const searchInput = document.querySelector("[data-search-input]");
+    const searchResults = document.querySelector("[data-search-results]");
+    const searchCount = document.querySelector("[data-search-count]");
+
+    function dots(value) {
+      return `<span class="dots" aria-label="${value}/5">${Array.from({ length: 5 }, (_, index) => `<i class="dot${index < value ? " on" : ""}"></i>`).join("")}</span>`;
+    }
+
+    function renderHero() {
+      if (state.mode === "strength") {
+        const current = strength[state.category];
+        hero.innerHTML = `
+          <div class="hero-kicker">力量训练</div>
+          <h2 class="hero-title">${current.title}</h2>
+          <p class="hero-copy">${current.copy}</p>
+          <div class="hero-stats">
+            <div class="stat"><strong>${current.planCount}</strong><span>训练计划</span></div>
+            <div class="stat"><strong>${current.count}</strong><span>动作收录</span></div>
+            <div class="stat"><strong>${current.filters.length}</strong><span>动作类型</span></div>
+          </div>
+        `;
+        return;
+      }
+
+      if (state.mode === "stretch") {
+        hero.innerHTML = `
+          <div class="hero-kicker">拉伸</div>
+          <h2 class="hero-title">${stretch.title}</h2>
+          <p class="hero-copy">${stretch.copy}</p>
+          <div class="hero-stats">
+            <div class="stat"><strong>${stretch.parts.length}</strong><span>部位</span></div>
+            <div class="stat"><strong>${stretch.moves.length}</strong><span>常用动作</span></div>
+            <div class="stat"><strong>5</strong><span>分钟起</span></div>
+          </div>
+        `;
+        return;
+      }
+
+      hero.innerHTML = `
+        <div class="hero-kicker">HIIT</div>
+        <h2 class="hero-title">${hiit.title}</h2>
+        <p class="hero-copy">${hiit.copy}</p>
+        <div class="hero-stats">
+          <div class="stat"><strong>${hiit.levels.length}</strong><span>强度</span></div>
+          <div class="stat"><strong>${hiit.workouts.length}</strong><span>组合</span></div>
+          <div class="stat"><strong>15</strong><span>分钟起</span></div>
+        </div>
+      `;
+    }
+
+    function renderStrength() {
+      const current = strength[state.category];
+      const filtered = state.filter === "全部"
+        ? current.exercises
+        : current.exercises.filter((exercise) => exercise.type === state.filter);
+
+      panel.innerHTML = `
+        <section class="section">
+          <div class="section-head">
+            <h2>肌群</h2>
+            <span>${current.label} · ${current.count} 个动作</span>
+          </div>
+          <div class="rail" data-categories>
+            ${Object.entries(strength).map(([key, value]) => `
+              <button class="chip${key === state.category ? " is-active" : ""}" type="button" data-category="${key}">
+                ${value.label} ${value.count}
+              </button>
+            `).join("")}
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <h2>训练计划</h2>
+            <button type="button" data-plan-count>${current.plans.length} 套</button>
+          </div>
+          <div class="plan-rail">
+            ${current.plans.map((plan, index) => `
+              <button class="plan-card${index === state.planIndex ? " is-selected" : ""}" type="button" data-plan="${index}">
+                <h3>${plan.title}</h3>
+                <p>${plan.copy}</p>
+                <div class="plan-meta">
+                  <span class="micro primary">${plan.level}</span>
+                  <span class="micro">${plan.duration}</span>
+                  <span class="micro">难度 ${dots(plan.difficulty)}</span>
+                  <span class="micro">强度 ${dots(plan.intensity)}</span>
+                </div>
+              </button>
+            `).join("")}
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <h2>${state.filter === "全部" ? `${current.label}部动作` : state.filter}</h2>
+            <span>${filtered.length} 个</span>
+          </div>
+          <div class="rail" data-filters>
+            ${current.filters.map((filter) => `
+              <button class="chip${filter === state.filter ? " is-active" : ""}" type="button" data-filter="${filter}">${filter}</button>
+            `).join("")}
+          </div>
+          <div class="list" style="margin-top: 10px;">
+            ${filtered.map(exerciseCard).join("") || `<div class="text-card"><h3>暂无动作</h3><p>当前筛选没有匹配动作。</p></div>`}
+          </div>
+        </section>
+      `;
+
+      panel.querySelectorAll("[data-category]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.category = button.dataset.category;
+          state.filter = "全部";
+          state.planIndex = 0;
+          render();
+        });
+      });
+
+      panel.querySelectorAll("[data-filter]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.filter = button.dataset.filter;
+          render();
+        });
+      });
+
+      panel.querySelectorAll("[data-plan]").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.planIndex = Number(button.dataset.plan);
+          showToast(`${current.plans[state.planIndex].title} 已选中`);
+          render();
+        });
+      });
+    }
+
+    function exerciseCard(exercise) {
+      return `
+        <button class="exercise-card" type="button" data-exercise="${exercise.name}">
+          <span class="thumb"><img src="${exercise.image}" alt="${exercise.name} 动作图"></span>
+          <span class="exercise-copy">
+            <h3>${exercise.name}</h3>
+            <p>${exercise.en}</p>
+            <span class="tags">
+              <span class="tag primary">${exercise.target}</span>
+              <span class="tag">${exercise.type}</span>
+              <span class="tag">${exercise.level}</span>
+            </span>
+          </span>
+        </button>
+      `;
+    }
+
+    function renderStretch() {
+      panel.innerHTML = `
+        <section class="section">
+          <div class="section-head">
+            <h2>部位</h2>
+            <span>${stretch.parts.length} 类</span>
+          </div>
+          <div class="rail">
+            ${stretch.parts.map((part, index) => `<button class="chip${index === 0 ? " is-active" : ""}" type="button">${part}</button>`).join("")}
+          </div>
+        </section>
+        <section class="section">
+          <div class="section-head">
+            <h2>常用拉伸</h2>
+            <span>${stretch.moves.length} 个</span>
+          </div>
+          <div class="text-list">
+            ${stretch.moves.map(textCard).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderHIIT() {
+      panel.innerHTML = `
+        <section class="section">
+          <div class="section-head">
+            <h2>强度</h2>
+            <span>${hiit.levels.length} 档</span>
+          </div>
+          <div class="rail">
+            ${hiit.levels.map((level, index) => `<button class="chip${index === 0 ? " is-active" : ""}" type="button">${level}</button>`).join("")}
+          </div>
+        </section>
+        <section class="section">
+          <div class="section-head">
+            <h2>组合训练</h2>
+            <span>${hiit.workouts.length} 套</span>
+          </div>
+          <div class="text-list">
+            ${hiit.workouts.map(textCard).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function textCard(item) {
+      return `
+        <button class="text-card" type="button">
+          <h3>${item.name}</h3>
+          <p>${item.copy}</p>
+          <span class="tag-row">
+            ${item.tags.map((tag, index) => `<span class="tag${index === 0 ? " primary" : ""}">${tag}</span>`).join("")}
+          </span>
+        </button>
+      `;
+    }
+
+    function render() {
+      modeButtons.forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.mode === state.mode);
+      });
+      renderHero();
+      if (state.mode === "strength") renderStrength();
+      if (state.mode === "stretch") renderStretch();
+      if (state.mode === "hiit") renderHIIT();
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 1400);
+    }
+
+    function allSearchItems() {
+      const strengthItems = Object.values(strength).flatMap((group) => [
+        ...group.plans.map((plan) => ({ kind: "计划", name: plan.title, copy: plan.copy, tags: [plan.level, plan.duration] })),
+        ...group.exercises.map((exercise) => ({ kind: "动作", name: exercise.name, copy: exercise.en, tags: [exercise.target, exercise.type, exercise.level], image: exercise.image }))
+      ]);
+      return [
+        ...strengthItems,
+        ...stretch.moves.map((move) => ({ kind: "拉伸", name: move.name, copy: move.copy, tags: move.tags })),
+        ...hiit.workouts.map((workout) => ({ kind: "HIIT", name: workout.name, copy: workout.copy, tags: workout.tags }))
+      ];
+    }
+
+    function renderSearch(query = "") {
+      const normalized = query.trim().toLowerCase();
+      const items = allSearchItems().filter((item) => {
+        if (!normalized) return true;
+        return [item.kind, item.name, item.copy, ...item.tags].join(" ").toLowerCase().includes(normalized);
+      }).slice(0, 12);
+
+      searchCount.textContent = `${items.length} 个`;
+      searchResults.innerHTML = items.map((item) => item.image
+        ? exerciseCard({ name: item.name, en: item.copy, type: item.tags[1], level: item.tags[2], target: item.tags[0], image: item.image })
+        : textCard(item)
+      ).join("");
+    }
+
+    modeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        state.mode = button.dataset.mode;
+        state.filter = "全部";
+        render();
+      });
+    });
+
+    document.querySelector("[data-search-open]").addEventListener("click", () => {
+      searchSheet.classList.add("is-open");
+      renderSearch();
+      requestAnimationFrame(() => searchInput.focus());
+    });
+
+    document.querySelector("[data-search-close]").addEventListener("click", () => {
+      searchSheet.classList.remove("is-open");
+      searchInput.value = "";
+    });
+
+    searchInput.addEventListener("input", () => renderSearch(searchInput.value));
+    searchSheet.addEventListener("click", (event) => {
+      if (event.target === searchSheet) {
+        searchSheet.classList.remove("is-open");
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 // ProfileView.swift
-// 「我的」：沉浸式头像头部 + 目标体重 + 数据与偏好 + 隐私与安全 + 关于。PRD §5.5。
+// 「我的」：沉浸式头像头部 + 目标体重 + 小工具 + 数据与偏好 + 隐私与安全 + 关于。PRD §5.5。
 // 头像吸色驱动顶部沉浸式渐变；资料/头像由 ProfileStore 本地持久化。
 
 import SwiftUI
@@ -32,8 +32,8 @@ struct ProfileView: View {
                     Color.clear.frame(height: 0).id(Self.topAnchor)
                     profileHeader
                     goalCard
-                    dataSettings
                     toolsSettings
+                    dataSettings
                     privacySettings
                     aboutSettings
                 }

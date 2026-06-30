@@ -24,13 +24,17 @@ struct EventEditorView: View {
 
     init(event: HealthEvent? = nil) {
         self.editingEvent = event
-        let defaultDate = HealthEvent.date("2026-06-18")
+        let defaultDate = Self.defaultDate
         _type = State(initialValue: event?.type ?? .illness)
         _isPeriod = State(initialValue: event?.isPeriod ?? false)
         _startDate = State(initialValue: event?.startDate ?? defaultDate)
         _endDate = State(initialValue: event?.endDate ?? event?.startDate ?? defaultDate)
         _note = State(initialValue: event?.note ?? "")
         _selectedTags = State(initialValue: event?.tags ?? [])
+    }
+
+    private static var defaultDate: Date {
+        Calendar.current.startOfDay(for: Date())
     }
 
     private var isEditing: Bool { editingEvent != nil }
