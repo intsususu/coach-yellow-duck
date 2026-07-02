@@ -1,7 +1,7 @@
 // SleepChart.swift
 // 睡眠质量趋势图：
-//   · 默认 —— 周 / 月显示逐晚质量分，6 个月显示周均质量分；
-//   · 睡眠阶段 —— 周 / 月显示「深度 / 核心 / 快速眼动 / 清醒」四阶段堆积面积图。
+//   · 默认 —— 周显示逐晚质量分，月 / 6 个月显示周均质量分；
+//   · 睡眠阶段 —— 周显示「深度 / 核心 / 快速眼动 / 清醒」四阶段堆积面积图。
 // 叠加事件：时间段色带、单日事件菱形，点选后常驻显示详情（与 WeightChart 一致）。
 
 import Charts
@@ -53,7 +53,7 @@ enum SleepRange: String, CaseIterable, Identifiable {
         }
     }
 
-    var isWeeklyAverage: Bool { self == .sixMonths }
+    var isWeeklyAverage: Bool { self != .week }
 }
 
 /// 供统一趋势卡的时间过滤按钮复用。
@@ -120,9 +120,9 @@ enum SleepQualityCalculator {
 }
 
 struct SleepChart: View {
-    /// 周 / 月堆积图数据源（日级，含阶段分解）。
+    /// 周堆积图数据源（日级，含阶段分解）。
     let dailySamples: [SleepSample]
-    /// 6 个月趋势数据源（每点为一周平均睡眠时长，单位小时）。
+    /// 月 / 6 个月趋势数据源（每点为一周平均睡眠时长，单位小时）。
     let weeklyAverages: [DailyMetric]
     /// 页面加载时预先计算一次，避免周 / 月横滑过程中重复跑评分公式。
     let qualityScores: [SleepQualityScore]
@@ -223,7 +223,7 @@ struct SleepChart: View {
         }
     }
 
-    // MARK: - 周 / 月：阶段堆积面积图
+    // MARK: - 周：阶段堆积面积图
 
     private var stackedChart: some View {
         let domain = stackedYDomain
@@ -360,7 +360,7 @@ struct SleepChart: View {
         visibleEvents.filter { range.isWeeklyAverage || !$0.isPeriod }
     }
 
-    /// 6 个月周均视图中，时间段用区间中点表示，并吸附到最近的周均曲线点。
+    /// 月 / 6 个月周均视图中，时间段用区间中点表示，并吸附到最近的周均曲线点。
     private func eventMarkerDate(_ event: HealthEvent) -> Date {
         guard range.isWeeklyAverage else { return event.startDate }
         let end = event.endDate ?? event.startDate
@@ -399,7 +399,7 @@ struct SleepChart: View {
         weeklyAverages.sorted { $0.date < $1.date }
     }
 
-    /// 周 / 月为逐晚质量分；6 个月聚合成周均分，避免 180 个点挤在同一屏。
+    /// 周为逐晚质量分；月 / 6 个月聚合成周均分，避免月视图点位过密。
     private var qualityPoints: [QualityPoint] {
         let nightly = qualityScores.map { QualityPoint(date: $0.date, value: $0.score) }
         guard range.isWeeklyAverage else { return nightly }
@@ -408,8 +408,9 @@ struct SleepChart: View {
         let grouped = Dictionary(grouping: nightly) { point in
             calendar.dateInterval(of: .weekOfYear, for: point.date)?.start ?? point.date
         }
-        return grouped.map { weekStart, points in
-            QualityPoint(date: weekStart,
+        return grouped.map { _, points in
+            let representativeDate = points.map(\.date).max() ?? Date()
+            return QualityPoint(date: representativeDate,
                          value: points.map(\.value).reduce(0, +) / Double(points.count))
         }
         .sorted { $0.date < $1.date }

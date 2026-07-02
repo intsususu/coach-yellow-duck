@@ -123,7 +123,7 @@ struct ExerciseView: View {
                 Rectangle()
                     .fill(Color.exerciseOrange)
                     .frame(width: 16, height: 2)
-                Text(selectedRange.isWeeklyAverage ? "周均消耗" : "每日消耗")
+                Text(selectedRange.isWeeklyAverage ? "周日均消耗" : "每日消耗")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(.textSecondary)
             }
@@ -603,15 +603,16 @@ struct ExerciseView: View {
 
     // MARK: - 派生数据
 
-    /// 由日级序列聚合成每周平均每日消耗（最近 26 周），供「6 个月」趋势使用。
+    /// 由日级序列聚合成每周日均消耗（最近 26 周），供「月 / 6 个月」趋势使用。
     private var weeklyAverages: [DailyMetric] {
         let calendar = Calendar.current
         let grouped = Dictionary(grouping: exerciseDaily) { sample -> Date in
             calendar.dateInterval(of: .weekOfYear, for: sample.date)?.start ?? sample.date
         }
-        let weeks = grouped.map { weekStart, samples -> DailyMetric in
+        let weeks = grouped.map { _, samples -> DailyMetric in
             let average = samples.map(\.value).reduce(0, +) / Double(samples.count)
-            return DailyMetric(date: weekStart, value: average.rounded())
+            let representativeDate = samples.map(\.date).max() ?? Date()
+            return DailyMetric(date: representativeDate, value: average.rounded())
         }
         .sorted { $0.date < $1.date }
         return Array(weeks.suffix(26))
@@ -663,7 +664,7 @@ struct ExerciseView: View {
         return "\(formatter.string(from: first)) – \(formatter.string(from: last))"
     }
 
-    /// 当前趋势图可视窗口区间。「6 个月」无固定窗口，返回周均序列整段区间。
+    /// 当前趋势图可视窗口区间。「6 个月」无固定窗口，返回周日均序列整段区间。
     private var visibleWindow: ClosedRange<Date> {
         guard let seconds = selectedRange.visibleDomainSeconds else {
             let dates = weeklyAverages.map(\.date)
@@ -680,7 +681,8 @@ struct ExerciseView: View {
 
     /// 切换范围或重载后，把窗口对齐到最新一段；右端留出 edgePadding 余量。
     private func resetScrollToLatest() {
-        guard let last = exerciseDaily.map(\.date).max(),
+        let source = selectedRange.isWeeklyAverage ? weeklyAverages : exerciseDaily
+        guard let last = source.map(\.date).max(),
               let seconds = selectedRange.visibleDomainSeconds else { return }
         scrollPosition = last.addingTimeInterval(-(seconds - selectedRange.edgePaddingSeconds))
     }

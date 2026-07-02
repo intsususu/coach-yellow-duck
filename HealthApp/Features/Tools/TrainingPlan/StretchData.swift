@@ -160,6 +160,11 @@ enum StretchData {
         moves(in: part).count
     }
 
+    /// 按英文名查找单个动作（供成套方案引用）。
+    static func move(_ nameEn: String) -> StretchMove? {
+        moves.first { $0.nameEn == nameEn }
+    }
+
     /// 关键词搜索（中文名 / 英文名 / 目标 / 类型）。
     static func search(_ keyword: String) -> [StretchMove] {
         let key = keyword.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
@@ -171,4 +176,86 @@ enum StretchData {
                 || $0.kind.lowercased().contains(key)
         }
     }
+}
+
+// MARK: - 拉伸成套方案（顶部「拉伸」tab 的横滑「训练计划」）
+
+/// 方案中的一个动作条目：引用 StretchData 动作（按英文名）+ 建议保持时长。
+struct StretchRoutineItem: Identifiable {
+    let id = UUID()
+    let moveNameEn: String      // 对应 StretchData.moves 的 nameEn
+    let holdText: String        // 如 "左右各 30 秒" / "保持 60 秒"
+
+    var move: StretchMove? { StretchData.move(moveNameEn) }
+}
+
+/// 一套拉伸方案（多动作按顺序编排，供快速跟练）。
+struct StretchRoutine: Identifiable {
+    let id = UUID()
+    let title: String
+    let subtitle: String        // 一句话目标
+    let level: String           // 入门 / 进阶
+    let durationMin: Int        // 预计时长
+    let difficultyStars: Int    // 难度 1–5（点阵展示）
+    let intensityStars: Int     // 强度 1–5（点阵展示）
+    let items: [StretchRoutineItem]
+
+    /// 能解析到的动作（跳过缺失引用）。
+    var moves: [StretchMove] { items.compactMap(\.move) }
+}
+
+/// 拉伸成套方案数据。内容可自由增补/调整，引用的 nameEn 需与 StretchData.moves 一致。
+enum StretchRoutines {
+    static let all: [StretchRoutine] = [
+        StretchRoutine(
+            title: "晨间唤醒",
+            subtitle: "起床后激活全身，唤醒关节活动度",
+            level: "入门", durationMin: 6, difficultyStars: 1, intensityStars: 2,
+            items: [
+                StretchRoutineItem(moveNameEn: "Cat Cow Stretch", holdText: "8–10 次呼吸"),
+                StretchRoutineItem(moveNameEn: "Arm Circles", holdText: "前后各 30 秒"),
+                StretchRoutineItem(moveNameEn: "Hip Circles Stretch", holdText: "左右各 30 秒"),
+                StretchRoutineItem(moveNameEn: "Downward Facing Dog", holdText: "保持 45 秒"),
+                StretchRoutineItem(moveNameEn: "Full Squat Mobility", holdText: "保持 45 秒"),
+            ]
+        ),
+        StretchRoutine(
+            title: "久坐放松",
+            subtitle: "缓解颈肩与上背僵硬，适合办公间隙",
+            level: "入门", durationMin: 8, difficultyStars: 1, intensityStars: 1,
+            items: [
+                StretchRoutineItem(moveNameEn: "Chin to Chest Stretch", holdText: "保持 30 秒"),
+                StretchRoutineItem(moveNameEn: "Neck Side Stretch", holdText: "左右各 30 秒"),
+                StretchRoutineItem(moveNameEn: "Chest and Front of Shoulder Stretch", holdText: "左右各 30 秒"),
+                StretchRoutineItem(moveNameEn: "Reaching Upper Back Stretch", holdText: "保持 30 秒"),
+                StretchRoutineItem(moveNameEn: "Seated Spinal Twist", holdText: "左右各 30 秒"),
+            ]
+        ),
+        StretchRoutine(
+            title: "睡前舒缓",
+            subtitle: "释放下背与腿部张力，帮助放松入睡",
+            level: "入门", durationMin: 7, difficultyStars: 1, intensityStars: 1,
+            items: [
+                StretchRoutineItem(moveNameEn: "Lying Lower Back Stretch", holdText: "保持 45 秒"),
+                StretchRoutineItem(moveNameEn: "Kneeling Back Rotation Stretch", holdText: "左右各 30 秒"),
+                StretchRoutineItem(moveNameEn: "Hamstring Stretch", holdText: "左右各 45 秒"),
+                StretchRoutineItem(moveNameEn: "Happy Baby Pose", holdText: "保持 60 秒"),
+                StretchRoutineItem(moveNameEn: "Back Relaxation", holdText: "保持 60 秒"),
+            ]
+        ),
+        StretchRoutine(
+            title: "全身活动度",
+            subtitle: "打开髋、胸椎与肩，进阶灵活度训练",
+            level: "进阶", durationMin: 10, difficultyStars: 3, intensityStars: 3,
+            items: [
+                StretchRoutineItem(moveNameEn: "Full Squat Mobility", holdText: "保持 60 秒"),
+                StretchRoutineItem(moveNameEn: "Garland Pose Malasana", holdText: "保持 60 秒"),
+                StretchRoutineItem(moveNameEn: "Open Book Stretch", holdText: "左右各 45 秒"),
+                StretchRoutineItem(moveNameEn: "Cobra Yoga Pose", holdText: "8–10 次呼吸"),
+                StretchRoutineItem(moveNameEn: "Downward Facing Dog", holdText: "保持 60 秒"),
+            ]
+        ),
+    ]
+
+    static var count: Int { all.count }
 }
