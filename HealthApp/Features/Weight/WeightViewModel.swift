@@ -38,9 +38,26 @@ final class WeightViewModel: ObservableObject {
             if seriesRequestID == requestID { isLoading = false }
             return false
         }
-        samples = loadedSamples
+        samples = Self.displaySamples(from: loadedSamples, for: range)
         bodyFatSamples = loadedBodyFat
         isLoading = false
         return true
+    }
+
+    private static func displaySamples(from samples: [WeightSample],
+                                       for range: TimeRange,
+                                       calendar: Calendar = .current) -> [WeightSample] {
+        guard range == .month else { return samples }
+
+        let sorted = samples.sorted { $0.date < $1.date }
+        let grouped = Dictionary(grouping: sorted) { sample in
+            calendar.dateInterval(of: .weekOfYear, for: sample.date)?.start ?? sample.date
+        }
+
+        return grouped.map { weekStart, samples in
+            let average = samples.map(\.kg).reduce(0, +) / Double(samples.count)
+            return WeightSample(date: weekStart, kg: average.rounded(toPlaces: 1))
+        }
+        .sorted { $0.date < $1.date }
     }
 }

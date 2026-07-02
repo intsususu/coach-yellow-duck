@@ -5,11 +5,11 @@ import SwiftUI
 
 struct SleepView: View {
     @EnvironmentObject private var appState: AppState
-    @State private var selectedRange: SleepRange = .week
+    @State private var selectedRange: SleepRange = .month
     @State private var dailySamples: [SleepSample] = []
     @State private var qualityScores: [SleepQualityScore] = []
     @State private var isLoading = false
-    /// 默认展示睡眠质量分；打开后，周 / 月切换为现有睡眠阶段趋势。
+    /// 默认展示睡眠质量分；打开后，周切换为现有睡眠阶段趋势。
     @State private var showsSleepStages = false
     /// 是否叠加事件：全局开关，由首页顶部控制，各趋势页共用。
     private var showsEvents: Bool { appState.showsEvents }
@@ -56,7 +56,7 @@ struct SleepView: View {
                 if event != nil { selectedLegendType = nil }
             }
             .onChange(of: selectedRange) { range in
-                if range == .sixMonths { showsSleepStages = false }
+                if range != .week { showsSleepStages = false }
                 clearEventSelection()
                 isLowQualityAnalysisExpanded = false
                 resetScrollToLatest()
@@ -311,24 +311,22 @@ struct SleepView: View {
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.textPrimary)
                     Spacer()
-                    HStack(spacing: 4) {
-                        Text("睡眠阶段")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.textSecondary)
-                            .accessibilityHidden(true)
-                        Toggle("", isOn: $showsSleepStages)
-                            .labelsHidden()
-                            .toggleStyle(.switch)
-                            .tint(.sleepIndigo)
-                            .controlSize(.mini)
-                            .accessibilityLabel("睡眠阶段")
+                    if selectedRange == .week {
+                        HStack(spacing: 4) {
+                            Text("睡眠阶段")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.textSecondary)
+                                .accessibilityHidden(true)
+                            Toggle("", isOn: $showsSleepStages)
+                                .labelsHidden()
+                                .toggleStyle(.switch)
+                                .tint(.sleepIndigo)
+                                .controlSize(.mini)
+                                .accessibilityLabel("睡眠阶段")
+                        }
+                        .fixedSize()
+                        .accessibilityHint("打开后显示睡眠阶段趋势")
                     }
-                    .fixedSize()
-                    .disabled(selectedRange == .sixMonths)
-                    .opacity(selectedRange == .sixMonths ? 0.55 : 1)
-                    .accessibilityHint(selectedRange == .sixMonths
-                                       ? "睡眠阶段仅支持周和月"
-                                       : "打开后显示睡眠阶段趋势")
                 }
 
                 trendChartArea
@@ -378,7 +376,8 @@ struct SleepView: View {
     private var legend: some View {
         HStack(spacing: 14) {
             if !showsSleepStages {
-                lineLegend(color: .sleepIndigo, title: "睡眠质量分")
+                lineLegend(color: .sleepIndigo,
+                           title: selectedRange.isWeeklyAverage ? "周均质量分" : "睡眠质量分")
             } else if selectedRange.isWeeklyAverage {
                 lineLegend(color: .sleepIndigo, title: "周平均时长")
             } else {
@@ -641,15 +640,16 @@ struct SleepView: View {
             .sorted { $0.date > $1.date }
     }
 
-    /// 由日级序列聚合成周平均睡眠时长（最近 26 周），供「6 个月」趋势使用。
+    /// 由日级序列聚合成周平均睡眠时长（最近 26 周），供「月 / 6 个月」趋势使用。
     private var weeklyAverages: [DailyMetric] {
         let calendar = Calendar.current
         let grouped = Dictionary(grouping: dailySamples) { sample -> Date in
             calendar.dateInterval(of: .weekOfYear, for: sample.date)?.start ?? sample.date
         }
-        let weeks = grouped.map { weekStart, samples -> DailyMetric in
+        let weeks = grouped.map { _, samples -> DailyMetric in
             let average = samples.map(\.totalHours).reduce(0, +) / Double(samples.count)
-            return DailyMetric(date: weekStart, value: (average * 10).rounded() / 10)
+            let representativeDate = samples.map(\.date).max() ?? Date()
+            return DailyMetric(date: representativeDate, value: (average * 10).rounded() / 10)
         }
         .sorted { $0.date < $1.date }
         return Array(weeks.suffix(26))
@@ -704,7 +704,8 @@ struct SleepView: View {
 
     /// 切换范围或重载后，把窗口对齐到最新一段；右端留出 edgePadding 余量，使最后一晚的刻度不贴边裁切。
     private func resetScrollToLatest() {
-        guard let last = dailySamples.map(\.date).max(),
+        let source = selectedRange.isWeeklyAverage ? weeklyAverages : dailySamples.map { DailyMetric(date: $0.date, value: $0.totalHours) }
+        guard let last = source.map(\.date).max(),
               let seconds = selectedRange.visibleDomainSeconds else { return }
         scrollPosition = last.addingTimeInterval(-(seconds - selectedRange.edgePaddingSeconds))
     }

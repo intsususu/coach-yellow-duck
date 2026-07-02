@@ -225,6 +225,59 @@
       box-shadow: none;
     }
 
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+    }
+
+    .cat-cell {
+      flex: none;
+      height: 38px;
+      padding: 0 4px;
+      text-align: center;
+    }
+
+    .filter-tabs {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      padding-bottom: 1px;
+      border-bottom: 1px solid var(--hairline);
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .filter-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-tab {
+      flex: 0 0 auto;
+      position: relative;
+      height: 36px;
+      padding: 0 1px;
+      color: var(--secondary);
+      font-size: 14px;
+      font-weight: 720;
+      white-space: nowrap;
+    }
+
+    .filter-tab.is-active {
+      color: var(--orange);
+      font-weight: 820;
+    }
+
+    .filter-tab.is-active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      border-radius: 2px;
+      background: var(--orange);
+    }
+
     .plan-rail {
       display: flex;
       gap: 10px;
@@ -693,6 +746,15 @@
       }
     };
 
+    const CAT_SHORT = {
+      chest: "胸",
+      shoulders: "肩",
+      back: "背",
+      lower: "腿",
+      core: "核心",
+      arms: "手臂"
+    };
+
     const stretch = {
       title: "拉伸与活动度",
       copy: "按部位进入，卡片更轻，适合训练前后快速查找。",
@@ -738,19 +800,12 @@
 
     function renderHero() {
       if (state.mode === "strength") {
-        const current = strength[state.category];
-        hero.innerHTML = `
-          <div class="hero-kicker">力量训练</div>
-          <h2 class="hero-title">${current.title}</h2>
-          <p class="hero-copy">${current.copy}</p>
-          <div class="hero-stats">
-            <div class="stat"><strong>${current.planCount}</strong><span>训练计划</span></div>
-            <div class="stat"><strong>${current.count}</strong><span>动作收录</span></div>
-            <div class="stat"><strong>${current.filters.length}</strong><span>动作类型</span></div>
-          </div>
-        `;
+        hero.classList.add("hidden");
+        hero.innerHTML = "";
         return;
       }
+
+      hero.classList.remove("hidden");
 
       if (state.mode === "stretch") {
         hero.innerHTML = `
@@ -788,12 +843,11 @@
         <section class="section">
           <div class="section-head">
             <h2>肌群</h2>
-            <span>${current.label} · ${current.count} 个动作</span>
           </div>
-          <div class="rail" data-categories>
+          <div class="cat-grid" data-categories>
             ${Object.entries(strength).map(([key, value]) => `
-              <button class="chip${key === state.category ? " is-active" : ""}" type="button" data-category="${key}">
-                ${value.label} ${value.count}
+              <button class="chip cat-cell${key === state.category ? " is-active" : ""}" type="button" data-category="${key}">
+                ${CAT_SHORT[key] || value.label}
               </button>
             `).join("")}
           </div>
@@ -822,15 +876,15 @@
 
         <section class="section">
           <div class="section-head">
-            <h2>${state.filter === "全部" ? `${current.label}部动作` : state.filter}</h2>
+            <h2>${current.label}动作</h2>
             <span>${filtered.length} 个</span>
           </div>
-          <div class="rail" data-filters>
+          <div class="filter-tabs" data-filters>
             ${current.filters.map((filter) => `
-              <button class="chip${filter === state.filter ? " is-active" : ""}" type="button" data-filter="${filter}">${filter}</button>
+              <button class="filter-tab${filter === state.filter ? " is-active" : ""}" type="button" data-filter="${filter}">${filter}</button>
             `).join("")}
           </div>
-          <div class="list" style="margin-top: 10px;">
+          <div class="list" style="margin-top: 12px;">
             ${filtered.map(exerciseCard).join("") || `<div class="text-card"><h3>暂无动作</h3><p>当前筛选没有匹配动作。</p></div>`}
           </div>
         </section>

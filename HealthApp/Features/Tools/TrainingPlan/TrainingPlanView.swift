@@ -9,7 +9,8 @@ struct TrainingPlanView: View {
     @State private var mode: TrainingMode = .strength
     @State private var selectedCategory: MuscleCategory = .chest
     @State private var selectedType = Self.allTypes
-    @State private var selectedPart: StretchPart = .neck
+    @State private var selectedStretchKind = Self.allTypes
+    @State private var selectedPart: StretchPart = .chest
     @State private var selectedHIITLevel: HIITLevel = .beginner
     @State private var showSearch = false
     @State private var weightKg: Double = 0
@@ -37,10 +38,6 @@ struct TrainingPlanView: View {
         [Self.allTypes] + TrainingPlanData.types(in: selectedCategory)
     }
 
-    private var categoryPresets: [TrainingPlanPreset] {
-        TrainingPlanPresets.presets(in: selectedCategory)
-    }
-
     var body: some View {
         VStack(spacing: 0) {
             modePicker
@@ -49,7 +46,6 @@ struct TrainingPlanView: View {
                 ScrollView {
                     VStack(spacing: 12) {
                         Color.clear.frame(height: 0).id(Self.topAnchor)
-                        heroCard
 
                         switch mode {
                         case .strength: strengthContent
@@ -67,7 +63,10 @@ struct TrainingPlanView: View {
                     selectedType = Self.allTypes
                     scrollToTop(proxy)
                 }
-                .onChange(of: selectedPart) { _, _ in scrollToTop(proxy) }
+                .onChange(of: selectedPart) { _, _ in
+                    selectedStretchKind = Self.allTypes
+                    scrollToTop(proxy)
+                }
                 .onChange(of: selectedHIITLevel) { _, _ in scrollToTop(proxy) }
             }
 
@@ -128,211 +127,49 @@ struct TrainingPlanView: View {
         .padding(.bottom, 4)
     }
 
-    // MARK: 顶部摘要
-
-    private var heroCard: some View {
-        CardView(padding: 18) {
-            VStack(alignment: .leading, spacing: 15) {
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(heroKicker)
-                        .font(.system(size: 12, weight: .heavy))
-                        .foregroundColor(accent)
-                    Text(heroTitle)
-                        .font(.system(size: 24, weight: .heavy))
-                        .foregroundColor(.textPrimary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.86)
-                    Text(heroSubtitle)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                HStack(spacing: 8) {
-                    ForEach(heroStats, id: \.title) { stat in
-                        heroStat(value: stat.value, title: stat.title)
-                    }
-                }
-            }
-        }
-    }
-
-    private func heroStat(value: String, title: String) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(value)
-                .font(.system(size: 18, weight: .heavy))
-                .foregroundColor(.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(title)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(.textMuted)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-        }
-        .frame(maxWidth: .infinity, minHeight: 58, alignment: .leading)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
-        .background(Color.appBg)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-    }
-
-    private var heroKicker: String {
-        switch mode {
-        case .strength: return "力量训练"
-        case .stretch:  return "拉伸"
-        case .hiit:     return "HIIT"
-        }
-    }
-
-    private var heroTitle: String {
-        switch mode {
-        case .strength: return strengthHeroTitle
-        case .stretch:  return "拉伸与活动度"
-        case .hiit:     return "HIIT 组合"
-        }
-    }
-
-    private var heroSubtitle: String {
-        switch mode {
-        case .strength:
-            return "从计划到单动作，按肌群目标快速进入训练。"
-        case .stretch:
-            return "按部位进入，适合训练前后快速查找。"
-        case .hiit:
-            return "按强度分层，保留热量估算与循环数，适合快速扫读。"
-        }
-    }
-
-    private var heroStats: [(value: String, title: String)] {
-        switch mode {
-        case .strength:
-            return [
-                ("\(categoryPresets.count)", "训练计划"),
-                ("\(TrainingPlanData.exercises(in: selectedCategory).count)", "动作收录"),
-                ("\(categoryTypes.count)", "动作类型"),
-            ]
-        case .stretch:
-            return [
-                ("\(StretchPart.allCases.count)", "部位"),
-                ("\(StretchData.count(in: selectedPart))", "当前动作"),
-                ("5", "分钟起"),
-            ]
-        case .hiit:
-            return [
-                ("\(HIITLevel.allCases.count)", "强度"),
-                ("\(HIITWorkouts.workouts(in: selectedHIITLevel).count)", "当前组合"),
-                ("15", "分钟起"),
-            ]
-        }
-    }
-
-    private var strengthHeroTitle: String {
-        switch selectedCategory {
-        case .core:      return "核心训练"
-        case .chest:     return "胸部训练"
-        case .back:      return "背部训练"
-        case .shoulders: return "肩部训练"
-        case .arms:      return "手臂训练"
-        case .lower:     return "下肢训练"
-        }
-    }
-
     // MARK: 力量训练
 
     private var strengthContent: some View {
         Group {
             categoryTabs
-
-            if !categoryPresets.isEmpty {
-                trainingPlanSection
-            }
-
             typeChips
             resultSection
         }
     }
 
     private var categoryTabs: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(categories) { category in
-                    pill(
-                        title: "\(category.displayName) \(TrainingPlanData.exercises(in: category).count)",
-                        selected: category == selectedCategory,
-                        accent: accent
-                    ) {
-                        guard category != selectedCategory else { return }
-                        selectedCategory = category
-                    }
-                }
-            }
-            .padding(.vertical, 1)
-        }
-    }
-
-    private var trainingPlanSection: some View {
-        let presets = categoryPresets
-
-        return VStack(alignment: .leading, spacing: 10) {
-            SectionTitle(title: "训练计划") {
-                Text("\(presets.count) 套")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.textMuted)
-            }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(presets) { preset in
-                        NavigationLink {
-                            TrainingPlanDetailView(preset: preset)
-                        } label: {
-                            planCard(preset)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.vertical, 1)
+        HStack(spacing: 6) {
+            ForEach(categories) { category in
+                categoryCell(category)
             }
         }
     }
 
-    private func planCard(_ preset: TrainingPlanPreset) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text(preset.title)
-                    .font(.system(size: 18, weight: .heavy))
-                    .foregroundColor(.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
-                Text(preset.subtitle)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.textSecondary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.85)
-            }
-
-            Spacer(minLength: 0)
-
-            VStack(alignment: .leading, spacing: 7) {
-                HStack(spacing: 6) {
-                    planBadge(preset.level, foreground: accent, background: accent.opacity(0.10))
-                    planBadge("约 \(preset.durationMin) 分钟")
-                }
-                HStack(spacing: 6) {
-                    planMetricBadge(title: "难度", level: presetDifficulty(preset))
-                    planMetricBadge(title: "强度", level: presetIntensity(preset))
-                }
-            }
+    private func categoryCell(_ category: MuscleCategory) -> some View {
+        gridTabCell(category.displayName, selected: category == selectedCategory) {
+            guard category != selectedCategory else { return }
+            selectedCategory = category
         }
-        .padding(14)
-        .frame(width: 244, height: 132, alignment: .leading)
-        .background(Color.cardBg)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.hairline, lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.035), radius: 8, x: 0, y: 2)
+    }
+
+    /// 通用网格 tab 单元：选中橙填充白字，未选 cardBg + hairline 描边（力量肌群 / HIIT 强度共用）。
+    private func gridTabCell(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(selected ? .white : .textSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity)
+                .frame(height: 38)
+                .background(selected ? accent : Color.cardBg)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.hairline, lineWidth: selected ? 0 : 1)
+                )
+        }
+        .buttonStyle(.plain)
     }
 
     private func planBadge(_ title: String, foreground: Color = .textSecondary, background: Color = .appBg) -> some View {
@@ -367,31 +204,38 @@ struct TrainingPlanView: View {
         .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
     }
 
-    private func presetDifficulty(_ preset: TrainingPlanPreset) -> Int {
-        if let difficulty = preset.difficultyStars { return difficulty }
-        return preset.level == "进阶" ? 3 : 2
-    }
-
-    private func presetIntensity(_ preset: TrainingPlanPreset) -> Int {
-        if let intensity = preset.intensityStars { return intensity }
-        return preset.level == "进阶" ? 4 : 3
-    }
-
     private var typeChips: some View {
+        underlineChips(categoryTypes, selected: selectedType) { selectedType = $0 }
+    }
+
+    /// 通用下划线筛选条（力量类型 / 拉伸类型共用）。
+    private func underlineChips(_ items: [String], selected: String,
+                                onSelect: @escaping (String) -> Void) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(categoryTypes, id: \.self) { type in
-                    pill(
-                        title: type,
-                        selected: type == selectedType,
-                        accent: accent
-                    ) {
-                        guard type != selectedType else { return }
-                        selectedType = type
+            HStack(spacing: 20) {
+                ForEach(items, id: \.self) { item in
+                    let isSelected = item == selected
+                    Button {
+                        guard item != selected else { return }
+                        onSelect(item)
+                    } label: {
+                        Text(item)
+                            .font(.system(size: 14, weight: isSelected ? .heavy : .semibold))
+                            .foregroundColor(isSelected ? accent : .textSecondary)
+                            .frame(height: 36)
+                            .overlay(alignment: .bottom) {
+                                Capsule()
+                                    .fill(isSelected ? accent : Color.clear)
+                                    .frame(height: 2)
+                            }
                     }
+                    .buttonStyle(.plain)
                 }
             }
-            .padding(.vertical, 1)
+            .padding(.horizontal, 2)
+        }
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Color.hairline).frame(height: 1)
         }
     }
 
@@ -485,66 +329,125 @@ struct TrainingPlanView: View {
     }
 
     private var strengthResultTitle: String {
-        if selectedType == Self.allTypes { return "\(selectedCategory.displayName)部动作" }
-        return selectedType
+        "\(selectedCategory.displayName)部动作"
     }
 
     // MARK: 拉伸
 
     private var stretchContent: some View {
         Group {
-            partTabs
+            stretchBodyMapCard
+            stretchKindChips
+            stretchResultSection
+        }
+    }
 
-            let moves = StretchData.moves(in: selectedPart)
-            VStack(alignment: .leading, spacing: 10) {
-                SectionTitle(title: "\(selectedPart.displayName)拉伸") {
-                    Text("\(moves.count) 个")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.textMuted)
-                }
-                if moves.isEmpty {
-                    emptyState(text: "该部位暂无动作")
-                } else {
-                    LazyVStack(spacing: 8) {
-                        ForEach(moves) { move in
-                            NavigationLink {
-                                MoveDetailView(stretch: move)
-                            } label: {
-                                stretchCard(move)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
+    private var stretchBodyMapCard: some View {
+        bodyMapCard(
+            title: "人体部位筛选",
+            subtitle: "当前：\(selectedPart.displayName)",
+            countText: "\(StretchData.count(in: selectedPart)) 个动作",
+            highlighted: stretchHighlightedMuscles
+        ) { muscle in
+            guard let part = stretchPart(for: muscle) else { return }
+            withAnimation(.easeInOut(duration: 0.16)) {
+                selectedPart = part
+                selectedStretchKind = Self.allTypes
             }
         }
     }
 
-    private var partTabs: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(StretchPart.allCases) { part in
-                    pill(
-                        title: "\(part.displayName) \(StretchData.count(in: part))",
-                        selected: part == selectedPart,
-                        accent: accent
-                    ) {
-                        guard part != selectedPart else { return }
-                        selectedPart = part
+    private var stretchKinds: [String] {
+        var seen = Set<String>()
+        let kinds = StretchData.moves(in: selectedPart).compactMap { move -> String? in
+            seen.insert(move.kind).inserted ? move.kind : nil
+        }
+        return [Self.allTypes] + kinds
+    }
+
+    private var visibleStretchMoves: [StretchMove] {
+        let moves = StretchData.moves(in: selectedPart)
+        guard selectedStretchKind != Self.allTypes else { return moves }
+        return moves.filter { $0.kind == selectedStretchKind }
+    }
+
+    // MARK: 拉伸筛选 + 动作列表
+
+    private var stretchKindChips: some View {
+        underlineChips(stretchKinds, selected: selectedStretchKind) { selectedStretchKind = $0 }
+    }
+
+    private var stretchResultSection: some View {
+        let moves = visibleStretchMoves
+
+        return VStack(alignment: .leading, spacing: 10) {
+            SectionTitle(title: "\(selectedPart.displayName)拉伸") {
+                Text("\(moves.count) 个")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.textMuted)
+            }
+            if moves.isEmpty {
+                emptyState(text: "该筛选暂无动作")
+            } else {
+                LazyVStack(spacing: 10) {
+                    ForEach(moves) { move in
+                        NavigationLink {
+                            MoveDetailView(stretch: move)
+                        } label: {
+                            stretchCard(move)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
-            .padding(.vertical, 1)
         }
     }
 
     private func stretchCard(_ move: StretchMove) -> some View {
-        textCard(
-            title: move.name,
-            subtitle: move.nameEn,
-            tags: [move.target, move.kind, DifficultyScale.label(move.difficulty)],
-            primaryTagIndex: 0
+        HStack(spacing: 12) {
+            stretchThumbnail
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(move.name)
+                    .font(.system(size: 17, weight: .heavy))
+                    .foregroundColor(.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.84)
+                Text(move.nameEn)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.textMuted)
+                    .lineLimit(1)
+
+                HStack(spacing: 6) {
+                    ExerciseTag(title: move.target, foreground: accent, background: accent.opacity(0.10))
+                    ExerciseTag(title: move.kind)
+                    DifficultyChip(level: move.difficulty)
+                }
+                .padding(.top, 6)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 104, alignment: .leading)
+        .background(Color.cardBg)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.hairline, lineWidth: 1)
         )
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private var stretchThumbnail: some View {
+        RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .fill(accent.opacity(0.10))
+            .frame(width: 104, height: 84)
+            .overlay {
+                Image(systemName: "figure.flexibility")
+                    .font(.system(size: 26, weight: .semibold))
+                    .foregroundColor(accent)
+            }
     }
 
     // MARK: HIIT
@@ -552,100 +455,197 @@ struct TrainingPlanView: View {
     private var hiitContent: some View {
         Group {
             hiitLevelTabs
-
-            let workouts = HIITWorkouts.workouts(in: selectedHIITLevel)
-            VStack(alignment: .leading, spacing: 10) {
-                SectionTitle(title: "\(selectedHIITLevel.displayName)组合") {
-                    Text("\(workouts.count) 套")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.textMuted)
-                }
-                if workouts.isEmpty {
-                    emptyState(text: "该强度暂无组合")
-                } else {
-                    VStack(spacing: 8) {
-                        ForEach(workouts) { workout in
-                            NavigationLink {
-                                HIITWorkoutDetailView(workout: workout)
-                            } label: {
-                                hiitCard(workout)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-            }
+            hiitResultSection
         }
     }
 
+    /// 强度网格（3 档单行，镜像力量肌群 tab）。
     private var hiitLevelTabs: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(HIITLevel.allCases) { level in
-                    pill(
-                        title: "\(level.displayName) \(HIITWorkouts.workouts(in: level).count)",
-                        selected: level == selectedHIITLevel,
-                        accent: accent
-                    ) {
-                        guard level != selectedHIITLevel else { return }
-                        selectedHIITLevel = level
-                    }
+        HStack(spacing: 6) {
+            ForEach(HIITLevel.allCases) { level in
+                gridTabCell(level.displayName, selected: level == selectedHIITLevel) {
+                    guard level != selectedHIITLevel else { return }
+                    selectedHIITLevel = level
                 }
             }
-            .padding(.vertical, 1)
         }
     }
 
+    private var hiitResultSection: some View {
+        let workouts = HIITWorkouts.workouts(in: selectedHIITLevel)
+
+        return VStack(alignment: .leading, spacing: 10) {
+            SectionTitle(title: "\(selectedHIITLevel.displayName)组合") {
+                Text("\(workouts.count) 套")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.textMuted)
+            }
+            if workouts.isEmpty {
+                emptyState(text: "该强度暂无组合")
+            } else {
+                LazyVStack(spacing: 10) {
+                    ForEach(workouts) { workout in
+                        NavigationLink {
+                            HIITWorkoutDetailView(workout: workout)
+                        } label: {
+                            hiitCard(workout)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+
+    /// 竖排信息大卡：标题 + 徽章行（强度/时长/循环）+ 难度·强度点阵 + 热量。
     private func hiitCard(_ workout: HIITWorkout) -> some View {
         let kcal = workout.estimatedKcal(weightKg: weightKg)
-        let kcalText = kcal > 0 ? "≈ \(formatKcal(kcal)) 千卡" : nil
-        let tags = [kcalText, "\(workout.rounds) 循环", "约 \(workout.totalMinutes) 分钟"]
-            .compactMap { $0 }
 
-        return textCard(
-            title: workout.title,
-            subtitle: workout.subtitle,
-            tags: tags,
-            primaryTagIndex: kcalText == nil ? nil : 0
-        )
-    }
-
-    private func textCard(title: String, subtitle: String, tags: [String], primaryTagIndex: Int?) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.system(size: 16, weight: .bold))
-                .foregroundColor(.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.84)
-            Text(subtitle)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.textSecondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.84)
+        return VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(workout.title)
+                    .font(.system(size: 18, weight: .heavy))
+                    .foregroundColor(.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                Text(workout.subtitle)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.textSecondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             HStack(spacing: 6) {
-                ForEach(Array(tags.enumerated()), id: \.offset) { index, tag in
-                    ExerciseTag(
-                        title: tag,
-                        foreground: index == primaryTagIndex ? accent : .textSecondary,
-                        background: index == primaryTagIndex ? accent.opacity(0.10) : .appBg
-                    )
-                }
+                planBadge(workout.level.displayName, foreground: accent, background: accent.opacity(0.10))
+                planBadge("约 \(workout.totalMinutes) 分钟")
+                planBadge("\(workout.rounds) 循环")
             }
-            .padding(.top, 2)
+
+            HStack(spacing: 6) {
+                planMetricBadge(title: "难度", level: hiitDifficulty(workout))
+                planMetricBadge(title: "强度", level: hiitIntensity(workout.level))
+            }
+
+            if kcal > 0 {
+                HStack(spacing: 5) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 12, weight: .bold))
+                    Text("≈ \(formatKcal(kcal)) 千卡 · \(workout.moves.count) 个动作")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundColor(accent)
+            }
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.cardBg)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(Color.hairline, lineWidth: 1)
         )
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: Color.black.opacity(0.035), radius: 8, x: 0, y: 2)
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func hiitDifficulty(_ workout: HIITWorkout) -> Int {
+        let moves = workout.moves
+        guard !moves.isEmpty else { return 3 }
+        let avg = Double(moves.map(\.difficulty).reduce(0, +)) / Double(moves.count)
+        return min(max(Int(avg.rounded()), 1), 5)
+    }
+
+    private func hiitIntensity(_ level: HIITLevel) -> Int {
+        switch level {
+        case .beginner:     return 3
+        case .intermediate: return 4
+        case .advanced:     return 5
+        }
     }
 
     // MARK: 共享组件
+
+    private func bodyMapCard(title: String, subtitle: String, countText: String,
+                             highlighted: Set<MuscleGroup>,
+                             onTap: @escaping (MuscleGroup) -> Void) -> some View {
+        CardView {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.textPrimary)
+                        Text(subtitle)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.textSecondary)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    ExerciseTag(title: countText,
+                                foreground: accent,
+                                background: accent.opacity(0.10))
+                }
+
+                MuscleBodyView(
+                    highlighted: highlighted,
+                    onTap: onTap,
+                    accent: accent,
+                    isFemale: isFemale
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: 300)
+            }
+        }
+    }
+
+    private var stretchHighlightedMuscles: Set<MuscleGroup> {
+        Set(stretchMuscles(for: selectedPart))
+    }
+
+    private func stretchMuscles(for part: StretchPart) -> [MuscleGroup] {
+        switch part {
+        case .neck:
+            return [.neck]
+        case .shoulder:
+            return [.frontDeltoids, .deltoids, .rearDeltoids, .trapezius]
+        case .chest:
+            return [.chest]
+        case .back:
+            return [.trapezius, .upperBack, .lowerBack]
+        case .arm:
+            return [.biceps, .triceps, .forearm]
+        case .core:
+            return [.abs, .obliques]
+        case .hip:
+            return [.gluteal, .adductor, .abductors]
+        case .leg:
+            return [.quadriceps, .hamstring, .calves]
+        case .fullBody:
+            return [.neck, .chest, .frontDeltoids, .upperBack, .abs, .gluteal, .quadriceps, .hamstring, .calves]
+        }
+    }
+
+    private func stretchPart(for muscle: MuscleGroup) -> StretchPart? {
+        switch muscle {
+        case .neck:
+            return .neck
+        case .frontDeltoids, .deltoids, .rearDeltoids:
+            return .shoulder
+        case .chest:
+            return .chest
+        case .trapezius, .upperBack, .lowerBack:
+            return .back
+        case .biceps, .triceps, .forearm:
+            return .arm
+        case .abs, .obliques:
+            return .core
+        case .gluteal, .adductor, .abductors:
+            return .hip
+        case .quadriceps, .hamstring, .calves:
+            return .leg
+        }
+    }
 
     private func emptyState(text: String) -> some View {
         VStack(spacing: 8) {
@@ -664,22 +664,6 @@ struct TrainingPlanView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(Color.hairline, lineWidth: 1)
         )
-    }
-
-    private func pill(title: String, selected: Bool, accent: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(selected ? .white : .textSecondary)
-                .padding(.horizontal, 14)
-                .frame(height: 32)
-                .background(selected ? accent : Color.cardBg)
-                .clipShape(Capsule())
-                .overlay(
-                    Capsule().stroke(Color.hairline, lineWidth: selected ? 0 : 1)
-                )
-        }
-        .buttonStyle(.plain)
     }
 
     private var disclaimer: some View {

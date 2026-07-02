@@ -138,8 +138,8 @@ enum ExerciseRange: String, CaseIterable, Identifiable {
         }
     }
 
-    /// 6 个月以「周平均每日消耗」折线呈现；周 / 月为日级折线。
-    var isWeeklyAverage: Bool { self == .sixMonths }
+    /// 月 / 6 个月以「每周日均消耗」折线呈现；周为日级折线。
+    var isWeeklyAverage: Bool { self != .week }
 
     /// 日均统计窗口的天数（周 7 / 月 30 / 6 个月 180）。
     var windowDayCount: Int {
@@ -164,13 +164,13 @@ enum ExerciseRange: String, CaseIterable, Identifiable {
 extension ExerciseRange: TrendRange {}
 
 /// 活动消耗趋势图（平滑折线）：
-///   · 周 / 月 —— 每日「活动消耗」折线，固定窗口横向滑动；
-///   · 6 个月 —— 每周平均每日消耗折线趋势。
+///   · 周 —— 每日「活动消耗」折线，固定窗口横向滑动；
+///   · 月 / 6 个月 —— 每周日均活动消耗折线趋势。
 /// 叠加事件：时间段色带、单日事件菱形，点选后常驻显示详情（与体重 / 睡眠趋势图一致）。
 struct ExerciseTrendChart: View {
     /// 周 / 月数据源（日级活动消耗，千卡）。
     let dailySamples: [DailyMetric]
-    /// 6 个月数据源（每点为一周的平均每日消耗，千卡）。
+    /// 月 / 6 个月数据源（每点为一周的平均每日消耗，千卡）。
     let weeklyAverages: [DailyMetric]
     let events: [HealthEvent]
     let showsEvents: Bool
@@ -182,7 +182,7 @@ struct ExerciseTrendChart: View {
 
     @State private var selectedDate: Date?
 
-    /// 当前呈现所用的数据点（周 / 月 = 日级；6 个月 = 周均），按日期升序。
+    /// 当前呈现所用的数据点（周 = 日级；月 / 6 个月 = 周日均），按日期升序。
     private var points: [DailyMetric] {
         (range.isWeeklyAverage ? weeklyAverages : dailySamples).sorted { $0.date < $1.date }
     }
@@ -280,7 +280,7 @@ struct ExerciseTrendChart: View {
                     }
                 }
             }
-            .accessibilityLabel(range.isWeeklyAverage ? "每周平均运动消耗趋势" : "每日运动消耗趋势")
+            .accessibilityLabel(range.isWeeklyAverage ? "每周日均运动消耗趋势" : "每日运动消耗趋势")
         )
         .onChange(of: selectedDate) { _, newDate in
             // 命中事件即选中并常驻；手势结束或点空白都不清空，只在关闭按钮 / 关掉开关时隐藏。
@@ -289,7 +289,7 @@ struct ExerciseTrendChart: View {
         }
     }
 
-    /// 仅在分页（周 / 月）时启用横向滚动与固定可视窗口；6 个月一次展示完整周均。
+    /// 仅在分页（周 / 月）时启用横向滚动与固定可视窗口；6 个月一次展示完整周日均。
     @ViewBuilder
     private func scrollable(_ content: some View) -> some View {
         if let seconds = range.visibleDomainSeconds {
@@ -313,7 +313,7 @@ struct ExerciseTrendChart: View {
         return first.addingTimeInterval(-pad)...last.addingTimeInterval(pad)
     }
 
-    /// 当前可视窗口区间；6 个月（不分页）覆盖整段周均数据。
+    /// 当前可视窗口区间；6 个月（不分页）覆盖整段周日均数据。
     private var visibleWindow: ClosedRange<Date> {
         guard let seconds = range.visibleDomainSeconds else {
             let dates = points.map(\.date)
@@ -362,7 +362,7 @@ struct ExerciseTrendChart: View {
         }
     }
 
-    /// 6 个月把时间段事件压缩成单点；周 / 月仅单日事件用菱形，时间段事件走色带。
+    /// 月 / 6 个月把时间段事件压缩成单点；周仅单日事件用菱形，时间段事件走色带。
     private var markerEvents: [HealthEvent] {
         visibleEvents.filter { range.isWeeklyAverage || !$0.isPeriod }
     }

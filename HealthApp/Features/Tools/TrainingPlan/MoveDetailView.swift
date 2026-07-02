@@ -200,3 +200,136 @@ struct MoveDetailView: View {
             .padding(.top, 2)
     }
 }
+
+// MARK: - 拉伸成套方案详情页
+
+/// 一套拉伸方案的跟练页：头部摘要卡 + 按顺序的动作流程（可下钻到单动作）。
+/// 结构镜像 HIITWorkoutDetailView。
+struct StretchRoutineDetailView: View {
+    let routine: StretchRoutine
+
+    private var accent: Color { .exerciseOrange }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 14) {
+                headerCard
+                stepList
+                disclaimer
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 20)
+        }
+        .background(Color.appBg.ignoresSafeArea())
+        .navigationTitle(routine.title)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var headerCard: some View {
+        CardView {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(routine.title)
+                    .font(.system(size: 22, weight: .heavy))
+                    .foregroundColor(.textPrimary)
+                Text(routine.subtitle)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 8) {
+                    statChip(icon: "figure.flexibility", text: routine.level)
+                    statChip(icon: "clock.fill", text: "约 \(routine.durationMin) 分钟")
+                    statChip(icon: "list.bullet", text: "\(routine.items.count) 个动作")
+                }
+            }
+        }
+    }
+
+    private func statChip(icon: String, text: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon).font(.system(size: 10, weight: .semibold))
+            Text(text).font(.system(size: 11, weight: .semibold))
+        }
+        .foregroundColor(accent)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(accent.opacity(0.10))
+        .clipShape(Capsule())
+    }
+
+    private var stepList: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionTitle(title: "拉伸流程") {
+                Text("\(routine.items.count) 步")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.textMuted)
+            }
+
+            LazyVStack(spacing: 8) {
+                ForEach(Array(routine.items.enumerated()), id: \.element.id) { index, item in
+                    stepRow(index: index, item: item)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func stepRow(index: Int, item: StretchRoutineItem) -> some View {
+        if let move = item.move {
+            NavigationLink {
+                MoveDetailView(stretch: move)
+            } label: {
+                HStack(spacing: 10) {
+                    Text("\(index + 1)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(accent)
+                        .frame(width: 22, height: 22)
+                        .background(accent.opacity(0.12))
+                        .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(move.name)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.textPrimary)
+                            .lineLimit(1)
+                        Text(move.nameEn)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.textMuted)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Text(item.holdText)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(accent)
+                        .lineLimit(1)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.textMuted.opacity(0.7))
+                }
+                .padding(11)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.cardBg)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.hairline, lineWidth: 1)
+                )
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var disclaimer: some View {
+        Text("拉伸动作仅供参考，请量力而行，避免弹震、以缓慢延展为主")
+            .font(.system(size: 11, weight: .medium))
+            .foregroundColor(.textMuted)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 2)
+    }
+}
